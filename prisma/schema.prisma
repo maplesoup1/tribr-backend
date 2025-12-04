@@ -1,5 +1,5 @@
-// Tribr Backend - Minimal Schema with Supabase Auth
-// Only Users table, all authentication handled by Supabase
+// Tribr Backend - Full Schema with Messaging, Connections, and Realtime
+// Authentication handled by Supabase Auth
 
 generator client {
   provider = "prisma-client-js"
@@ -9,7 +9,62 @@ datasource db {
   provider = "postgresql"
 }
 
-// Single Users table with all necessary fields
+// =======================================================
+//  ENUMS
+// =======================================================
+
+enum AuthProvider {
+  google
+  apple
+  email
+}
+
+enum Visibility {
+  public
+  connections
+  private
+}
+
+enum ConnectionStatus {
+  pending
+  accepted
+}
+
+enum ConversationType {
+  dm
+  group
+}
+
+enum ParticipantRole {
+  owner
+  admin
+  member
+}
+
+enum MessageType {
+  text
+  image
+  journey
+  system
+}
+
+enum InviteStatus {
+  pending
+  accepted
+  declined
+}
+
+enum JourneyStatus {
+  draft
+  active
+  completed
+  cancelled
+}
+
+// =======================================================
+//  1. CORE USER & IDENTITY
+// =======================================================
+
 model User {
   id                 String    @id @default(uuid())
 
@@ -18,15 +73,6 @@ model User {
   countryCode        String    @default("+1")
   email              String?   @unique
 
-  // Basic Info
-  fullName           String?
-
-  // Profile (merged from profiles table)
-  photoUrl           String?
-  archetypes         String[]  @default([])  // max 2 items
-  interests          String[]  @default([])
-  bio                String?
-
   // Onboarding
   onboardingComplete Boolean   @default(false)
 
@@ -34,5 +80,216 @@ model User {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
+  // Relations
+  identities         UserIdentity[]
+  profile            Profile?
+  connectionsAsUserA Connection[] @relation("UserAConnections")
+  connectionsAsUserB Connection[] @relation("UserBConnections")
+  journeys           Journey[]
+  blockedUsers       UserBlock[] @relation("BlockerRelation")
+  blockedBy          UserBlock[] @relation("BlockedRelation")
+  participants       ConversationParticipant[]
+  sentMessages       Message[] @relation("SentMessages")
+  deletedMessages    Message[] @relation("DeletedMessages")
+  sentInvites        ConversationInvite[] @relation("InviterRelation")
+  receivedInvites    ConversationInvite[] @relation("InviteeRelation")
+  location           UserLocation?
+  ownedConversations Conversation[] @relation("ConversationOwner")
+
   @@map("users")
+}
+
+model UserIdentity {
+  id             String       @id @default(uuid())
+  userId         String
+  provider       AuthProvider
+  providerId     String
+  lastSignInAt   DateTime?
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@map("user_identities")
+}
+
+model Profile {
+  userId            String      @id
+  fullName          String?
+  avatarUrl         String?
+  visibility        Visibility  @default(public)
+  verificationLevel Int         @default(0) @db.SmallInt
+
+  // Legacy fields (will be removed later or moved to separate table)
+  archetypes        String[]    @default([])
+  interests         String[]    @default([])
+  bio               String?
+
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+// =======================================================
+//  2. SOCIAL CONNECTIONS
+// =======================================================
+
+model Connection {
+  id        String           @id @default(uuid())
+  userA     String
+  userB     String
+  status    ConnectionStatus @default(pending)
+  source    String?
+  createdAt DateTime         @default(now())
+
+  userARelation User @relation("UserAConnections", fields: [userA], references: [id], onDelete: Cascade)
+  userBRelation User @relation("UserBConnections", fields: [userB], references: [id], onDelete: Cascade)
+
+  @@unique([userA, userB])
+  @@index([userA, userB])
+  @@map("connections")
+  // CHECK constraints added via SQL migration: userA < userB AND userA != userB
+}
+
+// =======================================================
+//  3. JOURNEYS
+// =======================================================
+
+model Journey {
+  id          String         @id @default(uuid())
+  userId      String
+  origin      String?
+  destination String?
+  startDate   DateTime?      @db.Date
+  endDate     DateTime?      @db.Date
+  tripType    String?
+  title       String?
+  description String?        @db.Text
+  status      JourneyStatus  @default(draft)
+  metadata    Json?          @db.JsonB
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    Message[]
+
+  @@index([userId, startDate, endDate])
+  @@map("journeys")
+  // CHECK constraint added via SQL migration: endDate IS NULL OR startDate IS NULL OR endDate >= startDate
+}
+
+// =======================================================
+//  4. TRUST & SAFETY
+// =======================================================
+
+model UserBlock {
+  blockerId String
+  blockedId String
+  reason    String?
+  createdAt DateTime @default(now())
+
+  blocker   User     @relation("BlockerRelation", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("BlockedRelation", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@map("user_blocks")
+  // CHECK constraint added via SQL migration: blockerId != blockedId
+}
+
+// =======================================================
+//  5. CONVERSATIONS
+// =======================================================
+
+model Conversation {
+  id              String           @id @default(uuid())
+  type            ConversationType
+  title           String?
+  ownerId         String
+  lastMessageId   String?          @unique
+  lastMessageAt   DateTime?
+  metadata        Json?            @db.JsonB
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  owner           User                        @relation("ConversationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  lastMessage     Message?                    @relation("LastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull)
+  participants    ConversationParticipant[]
+  messages        Message[]                   @relation("ConversationMessages")
+  invites         ConversationInvite[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  conversationId String
+  userId         String
+  role           ParticipantRole @default(member)
+  lastReadAt     DateTime?
+  joinedAt       DateTime        @default(now())
+
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model ConversationInvite {
+  id             String       @id @default(uuid())
+  conversationId String
+  inviterId      String
+  inviteeId      String
+  status         InviteStatus @default(pending)
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  inviter        User         @relation("InviterRelation", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee        User         @relation("InviteeRelation", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, inviteeId, status])
+  @@map("conversation_invites")
+}
+
+// =======================================================
+//  6. MESSAGES
+// =======================================================
+
+model Message {
+  id             String      @id @default(uuid())
+  conversationId String
+  senderId       String
+  type           MessageType @default(text)
+  content        String?     @db.Text
+  metadata       Json?       @db.JsonB
+  isEdited       Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  deletedAt      DateTime?
+  deletedBy      String?
+  journeyId      String?
+
+  conversation        Conversation  @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade)
+  sender              User          @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  deleter             User?         @relation("DeletedMessages", fields: [deletedBy], references: [id])
+  journey             Journey?      @relation(fields: [journeyId], references: [id], onDelete: SetNull)
+  lastMessageInConvo  Conversation? @relation("LastMessage")
+
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@index([senderId])
+  @@map("messages")
+}
+
+// =======================================================
+//  7. LOCATIONS (PostGIS)
+// =======================================================
+
+model UserLocation {
+  userId     String                                      @id
+  location   Unsupported("geography(Point, 4326)")?
+  updatedAt  DateTime                                    @default(now())
+  privacy    Visibility                                  @default(connections)
+
+  user       User                                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_locations")
 }
