@@ -61,6 +61,15 @@ enum JourneyStatus {
   cancelled
 }
 
+enum TransportMode {
+  plane
+  train
+  bus
+  car
+  ship
+  other
+}
+
 // =======================================================
 //  1. CORE USER & IDENTITY
 // =======================================================
@@ -69,9 +78,9 @@ model User {
   id                 String    @id @default(uuid())
 
   // Authentication (managed by Supabase Auth)
-  phone              String    @unique
+  phone              String?   @unique
   countryCode        String    @default("+1")
-  email              String?   @unique
+  email              String    @unique
 
   // Onboarding
   onboardingComplete Boolean   @default(false)
@@ -96,6 +105,9 @@ model User {
   location           UserLocation?
   ownedConversations Conversation[] @relation("ConversationOwner")
 
+  @@index([email])
+  @@index([phone])
+  @@index([createdAt])
   @@map("users")
 }
 
@@ -146,6 +158,9 @@ model Connection {
 
   @@unique([userA, userB])
   @@index([userA, userB])
+  @@index([status, userA])
+  @@index([status, userB])
+  @@index([status, createdAt])
   @@map("connections")
   // CHECK constraints added via SQL migration: userA < userB AND userA != userB
 }
@@ -169,11 +184,33 @@ model Journey {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages    Message[]
+  legs        JourneyLeg[]
 
   @@index([userId, startDate, endDate])
+  @@index([userId, status])
+  @@index([status, startDate])
   @@map("journeys")
+  // CHECK constraint added via SQL migration: endDate IS NULL OR startDate IS NULL OR endDate >= startDate
+}
+
+model JourneyLeg {
+  id          String         @id @default(uuid())
+  journeyId   String
+  destination String
+  startDate   DateTime?
+  endDate     DateTime?
+  transport   TransportMode  @default(plane)
+  order       Int?
+  metadata    Json?          @db.JsonB
+  createdAt   DateTime       @default(now())
+
+  journey     Journey        @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+
+  @@index([journeyId, startDate])
+  @@index([journeyId, order])
+  @@map("journey_legs")
   // CHECK constraint added via SQL migration: endDate IS NULL OR startDate IS NULL OR endDate >= startDate
 }
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
@@ -13,7 +13,7 @@ export class SupabaseService {
     );
 
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase URL and Service Role Key must be provided');
+      throw new InternalServerErrorException('Supabase URL and Service Role Key must be provided');
     }
 
     this.supabase = createClient(supabaseUrl, supabaseKey, {
@@ -40,7 +40,7 @@ export class SupabaseService {
     } = await this.supabase.auth.getUser(token);
 
     if (error || !user) {
-      throw new Error('Invalid token');
+      throw new UnauthorizedException('Invalid or expired token');
     }
 
     return user;

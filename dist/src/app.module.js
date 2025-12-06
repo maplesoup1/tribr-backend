@@ -13,11 +13,15 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const throttler_1 = require("@nestjs/throttler");
+const core_1 = require("@nestjs/core");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const prisma_module_1 = require("./prisma/prisma.module");
 const supabase_module_1 = require("./supabase/supabase.module");
+const auth_module_1 = require("./modules/auth/auth.module");
 const users_module_1 = require("./modules/users/users.module");
+const connections_module_1 = require("./modules/connections/connections.module");
+const journeys_module_1 = require("./modules/journeys/journeys.module");
 const config_2 = __importDefault(require("./config/config"));
 let AppModule = class AppModule {
 };
@@ -37,10 +41,19 @@ exports.AppModule = AppModule = __decorate([
             ]),
             prisma_module_1.PrismaModule,
             supabase_module_1.SupabaseModule,
+            auth_module_1.AuthModule,
             users_module_1.UsersModule,
+            connections_module_1.ConnectionsModule,
+            journeys_module_1.JourneysModule,
         ],
         controllers: [app_controller_1.AppController],
-        providers: [app_service_1.AppService],
+        providers: [
+            app_service_1.AppService,
+            {
+                provide: core_1.APP_GUARD,
+                useClass: throttler_1.ThrottlerGuard,
+            },
+        ],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

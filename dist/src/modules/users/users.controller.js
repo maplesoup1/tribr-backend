@@ -23,29 +23,10 @@ let UsersController = class UsersController {
         this.usersService = usersService;
     }
     async getCurrentUser(req) {
-        const supabaseUser = req.user;
-        let user = await this.usersService.findByPhone(supabaseUser.phone);
-        if (!user && supabaseUser.email) {
-            user = await this.usersService.findByEmail(supabaseUser.email);
-        }
-        if (!user) {
-            user = await this.usersService.createUser({
-                phone: supabaseUser.phone || '',
-                email: supabaseUser.email,
-                fullName: supabaseUser.user_metadata?.full_name,
-            });
-        }
-        return user;
+        return this.usersService.getOrCreateFromSupabaseUser(req.user);
     }
     async updateCurrentUser(req, updateUserDto) {
-        const supabaseUser = req.user;
-        let user = await this.usersService.findByPhone(supabaseUser.phone);
-        if (!user && supabaseUser.email) {
-            user = await this.usersService.findByEmail(supabaseUser.email);
-        }
-        if (!user) {
-            throw new Error('User not found in database');
-        }
+        const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
         return this.usersService.update(user.id, updateUserDto);
     }
 };

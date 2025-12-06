@@ -4,7 +4,7 @@
 -- 1. Add CHECK constraint for connections table
 -- Ensures userA is always less than userB to prevent duplicate connections
 ALTER TABLE connections
-ADD CONSTRAINT check_user_a_less_than_user_b
+ADD CONSTRAINT IF NOT EXISTS check_user_a_less_than_user_b
 CHECK ("userA" < "userB");
 
 -- 2. Add spatial index for user_locations (requires PostGIS)

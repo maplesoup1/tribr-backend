@@ -40,15 +40,29 @@ let UsersService = class UsersService {
     }
     async update(id, updateUserDto) {
         await this.findById(id);
+        const { fullName, photoUrl, archetypes, interests, bio, ...userFields } = updateUserDto;
+        const hasProfileUpdates = fullName !== undefined || photoUrl !== undefined ||
+            archetypes !== undefined || interests !== undefined ||
+            bio !== undefined;
         return this.prisma.user.update({
             where: { id },
-            data: updateUserDto,
-        });
-    }
-    async completeOnboarding(id) {
-        return this.prisma.user.update({
-            where: { id },
-            data: { onboardingComplete: true },
+            data: {
+                ...userFields,
+                ...(hasProfileUpdates && {
+                    profile: {
+                        update: {
+                            ...(fullName !== undefined && { fullName }),
+                            ...(photoUrl !== undefined && { avatarUrl: photoUrl }),
+                            ...(archetypes !== undefined && { archetypes }),
+                            ...(interests !== undefined && { interests }),
+                            ...(bio !== undefined && { bio }),
+                        },
+                    },
+                }),
+            },
+            include: {
+                profile: true,
+            },
         });
     }
     async createUser(data) {
@@ -57,8 +71,63 @@ let UsersService = class UsersService {
                 phone: data.phone,
                 countryCode: data.countryCode || '+1',
                 email: data.email,
-                fullName: data.fullName,
+                profile: {
+                    create: {
+                        fullName: data.fullName,
+                    },
+                },
             },
+            include: {
+                profile: true,
+            },
+        });
+    }
+    async upsertUser(data) {
+        if (!data.email) {
+            throw new common_1.BadRequestException('Email is required');
+        }
+        return this.prisma.user.upsert({
+            where: { email: data.email },
+            update: {
+                ...(data.phone !== undefined && { phone: data.phone }),
+                ...(data.countryCode && { countryCode: data.countryCode }),
+                profile: {
+                    upsert: {
+                        update: {
+                            fullName: data.fullName,
+                        },
+                        create: {
+                            fullName: data.fullName,
+                        },
+                    },
+                },
+            },
+            create: {
+                phone: data.phone,
+                countryCode: data.countryCode || '+1',
+                email: data.email,
+                profile: {
+                    create: {
+                        fullName: data.fullName,
+                    },
+                },
+            },
+            include: {
+                profile: true,
+            },
+        });
+    }
+    async getOrCreateFromSupabaseUser(supabaseUser) {
+        const email = supabaseUser?.email;
+        if (!email) {
+            throw new common_1.BadRequestException('Email is required from Supabase user');
+        }
+        const phone = supabaseUser?.phone;
+        const fullName = supabaseUser?.user_metadata?.full_name;
+        return this.upsertUser({
+            phone,
+            email,
+            fullName,
         });
     }
 };

@@ -26,10 +26,17 @@ let SupabaseAuthGuard = class SupabaseAuthGuard {
         const token = authHeader.substring(7);
         try {
             const user = await this.supabaseService.verifyToken(token);
+            if (!user || !user.id || !user.email) {
+                throw new common_1.UnauthorizedException('Invalid user data in token');
+            }
             request.user = user;
             return true;
         }
         catch (error) {
+            if (error instanceof common_1.UnauthorizedException) {
+                throw error;
+            }
+            console.error('Token verification error:', error);
             throw new common_1.UnauthorizedException('Invalid or expired token');
         }
     }

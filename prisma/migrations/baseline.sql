@@ -268,6 +268,8 @@ ALTER TABLE "user_locations" ADD CONSTRAINT "user_locations_userId_fkey" FOREIGN
 -- Connection constraints
 ALTER TABLE connections
 ADD CONSTRAINT IF NOT EXISTS check_no_self_connection CHECK ("userA" != "userB");
+ALTER TABLE connections
+ADD CONSTRAINT IF NOT EXISTS check_user_a_less_than_user_b CHECK ("userA" < "userB");
 
 -- UserBlock constraints
 ALTER TABLE user_blocks
@@ -279,9 +281,21 @@ ADD CONSTRAINT IF NOT EXISTS check_valid_date_range
 CHECK ("endDate" IS NULL OR "startDate" IS NULL OR "endDate" >= "startDate");
 
 -- ConversationInvite unique constraint
-CREATE UNIQUE INDEX IF NOT EXISTS conversation_invites_unique_active
-ON conversation_invites("conversationId", "inviteeId", status);
+-- Note: unique on (conversationId, inviteeId, status) already created above.
 
 -- Spatial index for user_locations
 CREATE INDEX IF NOT EXISTS idx_user_locations_geo
 ON user_locations USING GIST(location);
+
+-- Partial indexes for performance and cleanup
+CREATE INDEX IF NOT EXISTS idx_messages_active
+ON messages("conversationId", "createdAt" DESC)
+WHERE "deletedAt" IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_connections_status
+ON connections(status)
+WHERE status = 'accepted';
+
+CREATE INDEX IF NOT EXISTS idx_invites_pending_expired
+ON conversation_invites(status, "expiresAt")
+WHERE status = 'pending' AND "expiresAt" IS NOT NULL;

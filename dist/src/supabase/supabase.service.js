@@ -21,7 +21,7 @@ let SupabaseService = class SupabaseService {
         const supabaseUrl = this.configService.get('supabase.url');
         const supabaseKey = this.configService.get('supabase.serviceRoleKey');
         if (!supabaseUrl || !supabaseKey) {
-            throw new Error('Supabase URL and Service Role Key must be provided');
+            throw new common_1.InternalServerErrorException('Supabase URL and Service Role Key must be provided');
         }
         this.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey, {
             auth: {
@@ -36,7 +36,7 @@ let SupabaseService = class SupabaseService {
     async verifyToken(token) {
         const { data: { user }, error, } = await this.supabase.auth.getUser(token);
         if (error || !user) {
-            throw new Error('Invalid token');
+            throw new common_1.UnauthorizedException('Invalid or expired token');
         }
         return user;
     }

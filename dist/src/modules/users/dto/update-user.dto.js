@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateUserDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 class UpdateUserDto {
     fullName;
     email;
@@ -24,35 +25,52 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(100),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "fullName", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsEmail)({}, { message: 'Invalid email format' }),
+    (0, class_validator_1.MaxLength)(255),
+    (0, class_transformer_1.Transform)(({ value }) => value?.toLowerCase().trim()),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "email", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsUrl)({
+        protocols: ['https'],
+        require_protocol: true,
+        require_valid_protocol: true
+    }, { message: 'Photo URL must be a valid HTTPS URL' }),
+    (0, class_validator_1.MaxLength)(2048),
+    (0, class_validator_1.Matches)(/^https:\/\/([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/, {
+        message: 'Photo URL must be a valid HTTPS URL'
+    }),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "photoUrl", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
-    (0, class_validator_1.IsString)({ each: true }),
     (0, class_validator_1.ArrayMaxSize)(2),
+    (0, class_validator_1.IsString)({ each: true }),
+    (0, class_validator_1.MaxLength)(50, { each: true }),
+    (0, class_validator_1.Matches)(/^[a-zA-Z0-9\s-]+$/, { each: true, message: 'Invalid archetype format' }),
     __metadata("design:type", Array)
 ], UpdateUserDto.prototype, "archetypes", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ArrayMaxSize)(20),
     (0, class_validator_1.IsString)({ each: true }),
+    (0, class_validator_1.MaxLength)(50, { each: true }),
+    (0, class_validator_1.Matches)(/^[a-zA-Z0-9\s-]+$/, { each: true, message: 'Invalid interest format' }),
     __metadata("design:type", Array)
 ], UpdateUserDto.prototype, "interests", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(500),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "bio", void 0);
 //# sourceMappingURL=update-user.dto.js.map

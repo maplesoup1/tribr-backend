@@ -12,13 +12,47 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppController = void 0;
 const common_1 = require("@nestjs/common");
 const app_service_1 = require("./app.service");
+const prisma_service_1 = require("./prisma/prisma.service");
 let AppController = class AppController {
     appService;
-    constructor(appService) {
+    prisma;
+    constructor(appService, prisma) {
         this.appService = appService;
+        this.prisma = prisma;
     }
     getHello() {
         return this.appService.getHello();
+    }
+    async health() {
+        try {
+            await this.prisma.$queryRaw `SELECT 1`;
+            return {
+                status: 'ok',
+                timestamp: new Date().toISOString(),
+                database: 'connected',
+                uptime: process.uptime(),
+            };
+        }
+        catch (error) {
+            return {
+                status: 'error',
+                timestamp: new Date().toISOString(),
+                database: 'disconnected',
+                error: error instanceof Error ? error.message : 'Unknown error',
+            };
+        }
+    }
+    ready() {
+        return {
+            status: 'ready',
+            timestamp: new Date().toISOString(),
+        };
+    }
+    live() {
+        return {
+            status: 'alive',
+            timestamp: new Date().toISOString(),
+        };
     }
 };
 exports.AppController = AppController;
@@ -28,8 +62,27 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", String)
 ], AppController.prototype, "getHello", null);
+__decorate([
+    (0, common_1.Get)('health'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AppController.prototype, "health", null);
+__decorate([
+    (0, common_1.Get)('health/ready'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AppController.prototype, "ready", null);
+__decorate([
+    (0, common_1.Get)('health/live'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AppController.prototype, "live", null);
 exports.AppController = AppController = __decorate([
     (0, common_1.Controller)(),
-    __metadata("design:paramtypes", [app_service_1.AppService])
+    __metadata("design:paramtypes", [app_service_1.AppService,
+        prisma_service_1.PrismaService])
 ], AppController);
 //# sourceMappingURL=app.controller.js.map
