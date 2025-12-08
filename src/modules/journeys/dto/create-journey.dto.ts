@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsDateString, IsEnum, MaxLength } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsEnum,
+  MaxLength,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { JourneyStatus } from '@prisma/client';
 

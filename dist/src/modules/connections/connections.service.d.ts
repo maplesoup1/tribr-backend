@@ -7,34 +7,34 @@ export declare class ConnectionsService {
     private ensureNotSelf;
     create(currentUserId: string, dto: CreateConnectionDto): Promise<{
         id: string;
-        createdAt: Date;
         userA: string;
         userB: string;
-        status: import("@prisma/client").$Enums.ConnectionStatus;
+        status: import(".prisma/client").$Enums.ConnectionStatus;
         source: string | null;
+        createdAt: Date;
     }>;
     listByUser(userId: string, status?: ConnectionStatus, take?: number, skip?: number): Promise<{
         id: string;
-        createdAt: Date;
         userA: string;
         userB: string;
-        status: import("@prisma/client").$Enums.ConnectionStatus;
+        status: import(".prisma/client").$Enums.ConnectionStatus;
         source: string | null;
+        createdAt: Date;
     }[]>;
     updateStatus(id: string, status: ConnectionStatus, currentUserId: string): Promise<{
         id: string;
-        createdAt: Date;
         userA: string;
         userB: string;
-        status: import("@prisma/client").$Enums.ConnectionStatus;
+        status: import(".prisma/client").$Enums.ConnectionStatus;
         source: string | null;
+        createdAt: Date;
     }>;
     remove(id: string, currentUserId: string): Promise<{
         id: string;
-        createdAt: Date;
         userA: string;
         userB: string;
-        status: import("@prisma/client").$Enums.ConnectionStatus;
+        status: import(".prisma/client").$Enums.ConnectionStatus;
         source: string | null;
+        createdAt: Date;
     }>;
 }

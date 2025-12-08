@@ -1,4 +1,8 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateJourneyDto } from './dto/create-journey.dto';
 import { UpdateJourneyDto } from './dto/update-journey.dto';
@@ -93,7 +97,7 @@ export class JourneysService {
           OR "userB" = ${userId}::text
         )
     `;
-    return result.map(r => r.id);
+    return result.map((r) => r.id);
   }
 
   async findOne(id: string, currentUserId: string) {
@@ -105,8 +109,8 @@ export class JourneysService {
 
     const isOwner = journey.userId === currentUserId;
     const visibility = journey.user.profile?.visibility ?? Visibility.public;
-    const isConnection = (
-      await this.prisma.connection.count({
+    const isConnection =
+      (await this.prisma.connection.count({
         where: {
           status: ConnectionStatus.accepted,
           OR: [
@@ -114,8 +118,7 @@ export class JourneysService {
             { userB: currentUserId, userA: journey.userId },
           ],
         },
-      })
-    ) > 0;
+      })) > 0;
 
     const allowed =
       isOwner ||

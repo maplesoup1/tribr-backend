@@ -4,11 +4,6 @@ require("dotenv/config");
 const config_1 = require("prisma/config");
 exports.default = (0, config_1.defineConfig)({
     schema: "prisma/schema.prisma",
-    migrations: {
-        path: "prisma/migrations",
-    },
-    datasource: {
-        url: (0, config_1.env)("DIRECT_URL"),
-    },
+    earlyAccess: true,
 });
 //# sourceMappingURL=prisma.config.js.map

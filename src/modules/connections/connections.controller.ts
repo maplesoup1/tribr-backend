@@ -28,7 +28,9 @@ export class ConnectionsController {
 
   @Post()
   async create(@Request() req, @Body() dto: CreateConnectionDto) {
-    const currentUser = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+    const currentUser = await this.usersService.getOrCreateFromSupabaseUser(
+      req.user,
+    );
     return this.connectionsService.create(currentUser.id, dto);
   }
 
@@ -39,7 +41,9 @@ export class ConnectionsController {
     @Query('take') take?: number,
     @Query('skip') skip?: number,
   ) {
-    const currentUser = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+    const currentUser = await this.usersService.getOrCreateFromSupabaseUser(
+      req.user,
+    );
     return this.connectionsService.listByUser(
       currentUser.id,
       status,
@@ -49,17 +53,25 @@ export class ConnectionsController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Request() req, @Body() dto: UpdateConnectionDto) {
+  async update(
+    @Param('id') id: string,
+    @Request() req,
+    @Body() dto: UpdateConnectionDto,
+  ) {
     if (!dto.status) {
       throw new BadRequestException('status field is required');
     }
-    const currentUser = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+    const currentUser = await this.usersService.getOrCreateFromSupabaseUser(
+      req.user,
+    );
     return this.connectionsService.updateStatus(id, dto.status, currentUser.id);
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string, @Request() req) {
-    const currentUser = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+    const currentUser = await this.usersService.getOrCreateFromSupabaseUser(
+      req.user,
+    );
     return this.connectionsService.remove(id, currentUser.id);
   }
 }

@@ -40,11 +40,11 @@ __decorate([
     (0, class_validator_1.IsUrl)({
         protocols: ['https'],
         require_protocol: true,
-        require_valid_protocol: true
+        require_valid_protocol: true,
     }, { message: 'Photo URL must be a valid HTTPS URL' }),
     (0, class_validator_1.MaxLength)(2048),
     (0, class_validator_1.Matches)(/^https:\/\/([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/, {
-        message: 'Photo URL must be a valid HTTPS URL'
+        message: 'Photo URL must be a valid HTTPS URL',
     }),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "photoUrl", void 0);
@@ -54,7 +54,10 @@ __decorate([
     (0, class_validator_1.ArrayMaxSize)(2),
     (0, class_validator_1.IsString)({ each: true }),
     (0, class_validator_1.MaxLength)(50, { each: true }),
-    (0, class_validator_1.Matches)(/^[a-zA-Z0-9\s-]+$/, { each: true, message: 'Invalid archetype format' }),
+    (0, class_validator_1.Matches)(/^[a-zA-Z0-9\s-]+$/, {
+        each: true,
+        message: 'Invalid archetype format',
+    }),
     __metadata("design:type", Array)
 ], UpdateUserDto.prototype, "archetypes", void 0);
 __decorate([
@@ -63,7 +66,10 @@ __decorate([
     (0, class_validator_1.ArrayMaxSize)(20),
     (0, class_validator_1.IsString)({ each: true }),
     (0, class_validator_1.MaxLength)(50, { each: true }),
-    (0, class_validator_1.Matches)(/^[a-zA-Z0-9\s-]+$/, { each: true, message: 'Invalid interest format' }),
+    (0, class_validator_1.Matches)(/^[a-zA-Z0-9\s-]+$/, {
+        each: true,
+        message: 'Invalid interest format',
+    }),
     __metadata("design:type", Array)
 ], UpdateUserDto.prototype, "interests", void 0);
 __decorate([

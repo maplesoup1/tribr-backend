@@ -41,8 +41,10 @@ let UsersService = class UsersService {
     async update(id, updateUserDto) {
         await this.findById(id);
         const { fullName, photoUrl, archetypes, interests, bio, ...userFields } = updateUserDto;
-        const hasProfileUpdates = fullName !== undefined || photoUrl !== undefined ||
-            archetypes !== undefined || interests !== undefined ||
+        const hasProfileUpdates = fullName !== undefined ||
+            photoUrl !== undefined ||
+            archetypes !== undefined ||
+            interests !== undefined ||
             bio !== undefined;
         return this.prisma.user.update({
             where: { id },

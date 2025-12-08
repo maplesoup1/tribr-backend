@@ -22,7 +22,10 @@ export class UsersController {
   }
 
   @Patch('me')
-  async updateCurrentUser(@Request() req, @Body() updateUserDto: UpdateUserDto) {
+  async updateCurrentUser(
+    @Request() req,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
     const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
     return this.usersService.update(user.id, updateUserDto);
   }

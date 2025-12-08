@@ -18,7 +18,9 @@ export const CurrentUser = createParamDecorator(
     // Resolve and cache user from Supabase auth data
     if (request.user) {
       const usersService = request.app.get(UsersService);
-      request.currentUser = await usersService.getOrCreateFromSupabaseUser(request.user);
+      request.currentUser = await usersService.getOrCreateFromSupabaseUser(
+        request.user,
+      );
       return request.currentUser;
     }
 

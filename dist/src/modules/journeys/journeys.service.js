@@ -88,7 +88,7 @@ let JourneysService = class JourneysService {
           OR "userB" = ${userId}::text
         )
     `;
-        return result.map(r => r.id);
+        return result.map((r) => r.id);
     }
     async findOne(id, currentUserId) {
         const journey = await this.prisma.journey.findUnique({

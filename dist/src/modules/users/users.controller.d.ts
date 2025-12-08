@@ -5,39 +5,41 @@ export declare class UsersController {
     constructor(usersService: UsersService);
     getCurrentUser(req: any): Promise<{
         profile: {
+            userId: string;
             fullName: string | null;
+            avatarUrl: string | null;
+            visibility: import(".prisma/client").$Enums.Visibility;
+            verificationLevel: number;
             archetypes: string[];
             interests: string[];
             bio: string | null;
-            avatarUrl: string | null;
-            visibility: import("@prisma/client").$Enums.Visibility;
-            verificationLevel: number;
-            userId: string;
         } | null;
     } & {
         id: string;
         phone: string | null;
-        email: string;
         countryCode: string;
+        email: string;
+        onboardingComplete: boolean;
         createdAt: Date;
         updatedAt: Date;
     }>;
     updateCurrentUser(req: any, updateUserDto: UpdateUserDto): Promise<{
         profile: {
+            userId: string;
             fullName: string | null;
+            avatarUrl: string | null;
+            visibility: import(".prisma/client").$Enums.Visibility;
+            verificationLevel: number;
             archetypes: string[];
             interests: string[];
             bio: string | null;
-            avatarUrl: string | null;
-            visibility: import("@prisma/client").$Enums.Visibility;
-            verificationLevel: number;
-            userId: string;
         } | null;
     } & {
         id: string;
         phone: string | null;
-        email: string;
         countryCode: string;
+        email: string;
+        onboardingComplete: boolean;
         createdAt: Date;
         updatedAt: Date;
     }>;

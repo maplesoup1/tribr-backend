@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
@@ -12,36 +16,41 @@ export class AuthService {
 
     try {
       // Create user with Supabase Auth
-      const { data, error } = await this.supabaseService.getClient().auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            phone: phone,
+      const { data, error } = await this.supabaseService
+        .getClient()
+        .auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+              phone: phone,
+            },
+            emailRedirectTo: undefined, // Disable magic link
           },
-          emailRedirectTo: undefined, // Disable magic link
-        },
-      });
+        });
 
       if (error) {
         throw new BadRequestException(error.message);
       }
 
       // Send OTP to email
-      const { error: otpError } = await this.supabaseService.getClient().auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false, // User already created
-        },
-      });
+      const { error: otpError } = await this.supabaseService
+        .getClient()
+        .auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: false, // User already created
+          },
+        });
 
       if (otpError) {
         throw new BadRequestException(otpError.message);
       }
 
       return {
-        message: 'OTP sent to your email. Please verify to complete registration.',
+        message:
+          'OTP sent to your email. Please verify to complete registration.',
         email,
         userId: data.user?.id,
       };
@@ -49,7 +58,9 @@ export class AuthService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new BadRequestException('Failed to create account. Please try again.');
+      throw new BadRequestException(
+        'Failed to create account. Please try again.',
+      );
     }
   }
 
@@ -57,11 +68,13 @@ export class AuthService {
     const { email, token } = verifyOtpDto;
 
     try {
-      const { data, error } = await this.supabaseService.getClient().auth.verifyOtp({
-        email,
-        token,
-        type: 'email',
-      });
+      const { data, error } = await this.supabaseService
+        .getClient()
+        .auth.verifyOtp({
+          email,
+          token,
+          type: 'email',
+        });
 
       if (error) {
         throw new UnauthorizedException('Invalid or expired OTP code');
@@ -88,12 +101,14 @@ export class AuthService {
 
   async resendOtp(email: string) {
     try {
-      const { error } = await this.supabaseService.getClient().auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-        },
-      });
+      const { error } = await this.supabaseService
+        .getClient()
+        .auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: false,
+          },
+        });
 
       if (error) {
         throw new BadRequestException(error.message);

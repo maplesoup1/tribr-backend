@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateConnectionDto } from './dto/create-connection.dto';
 import { UpdateConnectionDto } from './dto/update-connection.dto';
@@ -31,7 +35,9 @@ export class ConnectionsService {
       },
     });
     if (blocked > 0) {
-      throw new BadRequestException('Connection not allowed due to block settings');
+      throw new BadRequestException(
+        'Connection not allowed due to block settings',
+      );
     }
 
     try {
@@ -46,7 +52,9 @@ export class ConnectionsService {
     } catch (error: any) {
       // Handle specific Prisma error codes
       if (error.code === 'P2002') {
-        throw new BadRequestException('Connection already exists between these users');
+        throw new BadRequestException(
+          'Connection already exists between these users',
+        );
       }
       if (error.code === 'P2003') {
         throw new BadRequestException('One or both users do not exist');
@@ -56,7 +64,9 @@ export class ConnectionsService {
       }
       if (error.code === 'P2010') {
         // CHECK constraint violation (userA < userB or userA != userB)
-        throw new BadRequestException('Invalid connection: users must be different');
+        throw new BadRequestException(
+          'Invalid connection: users must be different',
+        );
       }
       // Log unexpected errors for debugging
       console.error('Connection creation error:', error);
@@ -64,7 +74,12 @@ export class ConnectionsService {
     }
   }
 
-  async listByUser(userId: string, status?: ConnectionStatus, take: number = 50, skip: number = 0) {
+  async listByUser(
+    userId: string,
+    status?: ConnectionStatus,
+    take: number = 50,
+    skip: number = 0,
+  ) {
     // Limit to max 100 per page to prevent DoS
     const limit = Math.min(take, 100);
 
@@ -80,27 +95,48 @@ export class ConnectionsService {
     });
   }
 
-  async updateStatus(id: string, status: ConnectionStatus, currentUserId: string) {
-    const connection = await this.prisma.connection.findUnique({ where: { id } });
+  async updateStatus(
+    id: string,
+    status: ConnectionStatus,
+    currentUserId: string,
+  ) {
+    const connection = await this.prisma.connection.findUnique({
+      where: { id },
+    });
     if (!connection) {
       throw new BadRequestException('Connection not found');
     }
     // Only participants can update
-    if (connection.userA !== currentUserId && connection.userB !== currentUserId) {
+    if (
+      connection.userA !== currentUserId &&
+      connection.userB !== currentUserId
+    ) {
       throw new ForbiddenException();
     }
 
     // Enforce simple state machine: pending -> accepted/declined; accepted stays accepted
-    if (connection.status === ConnectionStatus.accepted && status !== ConnectionStatus.accepted) {
-      throw new BadRequestException('Accepted connections cannot change status');
+    if (
+      connection.status === ConnectionStatus.accepted &&
+      status !== ConnectionStatus.accepted
+    ) {
+      throw new BadRequestException(
+        'Accepted connections cannot change status',
+      );
     }
     if (connection.status === ConnectionStatus.pending) {
-      if (![ConnectionStatus.accepted, ConnectionStatus.pending].includes(status)) {
+      if (
+        ![ConnectionStatus.accepted, ConnectionStatus.pending].includes(status)
+      ) {
         throw new BadRequestException('Invalid status transition');
       }
       // If current user is not userB (requestee), block accept
-      if (status === ConnectionStatus.accepted && connection.userB !== currentUserId) {
-        throw new ForbiddenException('Only the recipient can accept the connection');
+      if (
+        status === ConnectionStatus.accepted &&
+        connection.userB !== currentUserId
+      ) {
+        throw new ForbiddenException(
+          'Only the recipient can accept the connection',
+        );
       }
     }
 
@@ -111,11 +147,16 @@ export class ConnectionsService {
   }
 
   async remove(id: string, currentUserId: string) {
-    const connection = await this.prisma.connection.findUnique({ where: { id } });
+    const connection = await this.prisma.connection.findUnique({
+      where: { id },
+    });
     if (!connection) {
       throw new BadRequestException('Connection not found');
     }
-    if (connection.userA !== currentUserId && connection.userB !== currentUserId) {
+    if (
+      connection.userA !== currentUserId &&
+      connection.userB !== currentUserId
+    ) {
       throw new ForbiddenException();
     }
     return this.prisma.connection.delete({ where: { id } });

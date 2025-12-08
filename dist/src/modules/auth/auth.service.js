@@ -20,7 +20,9 @@ let AuthService = class AuthService {
     async signUpWithOtp(signUpDto) {
         const { email, password, fullName, phone } = signUpDto;
         try {
-            const { data, error } = await this.supabaseService.getClient().auth.signUp({
+            const { data, error } = await this.supabaseService
+                .getClient()
+                .auth.signUp({
                 email,
                 password,
                 options: {
@@ -34,7 +36,9 @@ let AuthService = class AuthService {
             if (error) {
                 throw new common_1.BadRequestException(error.message);
             }
-            const { error: otpError } = await this.supabaseService.getClient().auth.signInWithOtp({
+            const { error: otpError } = await this.supabaseService
+                .getClient()
+                .auth.signInWithOtp({
                 email,
                 options: {
                     shouldCreateUser: false,
@@ -59,7 +63,9 @@ let AuthService = class AuthService {
     async verifyOtp(verifyOtpDto) {
         const { email, token } = verifyOtpDto;
         try {
-            const { data, error } = await this.supabaseService.getClient().auth.verifyOtp({
+            const { data, error } = await this.supabaseService
+                .getClient()
+                .auth.verifyOtp({
                 email,
                 token,
                 type: 'email',
@@ -87,7 +93,9 @@ let AuthService = class AuthService {
     }
     async resendOtp(email) {
         try {
-            const { error } = await this.supabaseService.getClient().auth.signInWithOtp({
+            const { error } = await this.supabaseService
+                .getClient()
+                .auth.signInWithOtp({
                 email,
                 options: {
                     shouldCreateUser: false,

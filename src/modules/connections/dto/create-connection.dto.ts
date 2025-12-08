@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsOptional, IsString, IsEnum, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 import { ConnectionStatus } from '@prisma/client';
 
 export class CreateConnectionDto {

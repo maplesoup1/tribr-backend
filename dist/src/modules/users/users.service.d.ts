@@ -6,43 +6,47 @@ export declare class UsersService {
     findById(id: string): Promise<{
         id: string;
         phone: string | null;
-        email: string;
         countryCode: string;
+        email: string;
+        onboardingComplete: boolean;
         createdAt: Date;
         updatedAt: Date;
     }>;
     findByPhone(phone: string): Promise<{
         id: string;
         phone: string | null;
-        email: string;
         countryCode: string;
+        email: string;
+        onboardingComplete: boolean;
         createdAt: Date;
         updatedAt: Date;
     } | null>;
     findByEmail(email: string): Promise<{
         id: string;
         phone: string | null;
-        email: string;
         countryCode: string;
+        email: string;
+        onboardingComplete: boolean;
         createdAt: Date;
         updatedAt: Date;
     } | null>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<{
         profile: {
+            userId: string;
             fullName: string | null;
+            avatarUrl: string | null;
+            visibility: import(".prisma/client").$Enums.Visibility;
+            verificationLevel: number;
             archetypes: string[];
             interests: string[];
             bio: string | null;
-            avatarUrl: string | null;
-            visibility: import("@prisma/client").$Enums.Visibility;
-            verificationLevel: number;
-            userId: string;
         } | null;
     } & {
         id: string;
         phone: string | null;
-        email: string;
         countryCode: string;
+        email: string;
+        onboardingComplete: boolean;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -53,20 +57,21 @@ export declare class UsersService {
         fullName?: string;
     }): Promise<{
         profile: {
+            userId: string;
             fullName: string | null;
+            avatarUrl: string | null;
+            visibility: import(".prisma/client").$Enums.Visibility;
+            verificationLevel: number;
             archetypes: string[];
             interests: string[];
             bio: string | null;
-            avatarUrl: string | null;
-            visibility: import("@prisma/client").$Enums.Visibility;
-            verificationLevel: number;
-            userId: string;
         } | null;
     } & {
         id: string;
         phone: string | null;
-        email: string;
         countryCode: string;
+        email: string;
+        onboardingComplete: boolean;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -77,39 +82,41 @@ export declare class UsersService {
         fullName?: string;
     }): Promise<{
         profile: {
+            userId: string;
             fullName: string | null;
+            avatarUrl: string | null;
+            visibility: import(".prisma/client").$Enums.Visibility;
+            verificationLevel: number;
             archetypes: string[];
             interests: string[];
             bio: string | null;
-            avatarUrl: string | null;
-            visibility: import("@prisma/client").$Enums.Visibility;
-            verificationLevel: number;
-            userId: string;
         } | null;
     } & {
         id: string;
         phone: string | null;
-        email: string;
         countryCode: string;
+        email: string;
+        onboardingComplete: boolean;
         createdAt: Date;
         updatedAt: Date;
     }>;
     getOrCreateFromSupabaseUser(supabaseUser: any): Promise<{
         profile: {
+            userId: string;
             fullName: string | null;
+            avatarUrl: string | null;
+            visibility: import(".prisma/client").$Enums.Visibility;
+            verificationLevel: number;
             archetypes: string[];
             interests: string[];
             bio: string | null;
-            avatarUrl: string | null;
-            visibility: import("@prisma/client").$Enums.Visibility;
-            verificationLevel: number;
-            userId: string;
         } | null;
     } & {
         id: string;
         phone: string | null;
-        email: string;
         countryCode: string;
+        email: string;
+        onboardingComplete: boolean;
         createdAt: Date;
         updatedAt: Date;
     }>;

@@ -79,21 +79,26 @@ let ConnectionsService = class ConnectionsService {
         });
     }
     async updateStatus(id, status, currentUserId) {
-        const connection = await this.prisma.connection.findUnique({ where: { id } });
+        const connection = await this.prisma.connection.findUnique({
+            where: { id },
+        });
         if (!connection) {
             throw new common_1.BadRequestException('Connection not found');
         }
-        if (connection.userA !== currentUserId && connection.userB !== currentUserId) {
+        if (connection.userA !== currentUserId &&
+            connection.userB !== currentUserId) {
             throw new common_1.ForbiddenException();
         }
-        if (connection.status === client_1.ConnectionStatus.accepted && status !== client_1.ConnectionStatus.accepted) {
+        if (connection.status === client_1.ConnectionStatus.accepted &&
+            status !== client_1.ConnectionStatus.accepted) {
             throw new common_1.BadRequestException('Accepted connections cannot change status');
         }
         if (connection.status === client_1.ConnectionStatus.pending) {
             if (![client_1.ConnectionStatus.accepted, client_1.ConnectionStatus.pending].includes(status)) {
                 throw new common_1.BadRequestException('Invalid status transition');
             }
-            if (status === client_1.ConnectionStatus.accepted && connection.userB !== currentUserId) {
+            if (status === client_1.ConnectionStatus.accepted &&
+                connection.userB !== currentUserId) {
                 throw new common_1.ForbiddenException('Only the recipient can accept the connection');
             }
         }
@@ -103,11 +108,14 @@ let ConnectionsService = class ConnectionsService {
         });
     }
     async remove(id, currentUserId) {
-        const connection = await this.prisma.connection.findUnique({ where: { id } });
+        const connection = await this.prisma.connection.findUnique({
+            where: { id },
+        });
         if (!connection) {
             throw new common_1.BadRequestException('Connection not found');
         }
-        if (connection.userA !== currentUserId && connection.userB !== currentUserId) {
+        if (connection.userA !== currentUserId &&
+            connection.userB !== currentUserId) {
             throw new common_1.ForbiddenException();
         }
         return this.prisma.connection.delete({ where: { id } });

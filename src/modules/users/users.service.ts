@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -37,12 +41,16 @@ export class UsersService {
     await this.findById(id);
 
     // Separate User fields from Profile fields
-    const { fullName, photoUrl, archetypes, interests, bio, ...userFields } = updateUserDto;
+    const { fullName, photoUrl, archetypes, interests, bio, ...userFields } =
+      updateUserDto;
 
     // Build profile update object only if profile fields are present
-    const hasProfileUpdates = fullName !== undefined || photoUrl !== undefined ||
-                               archetypes !== undefined || interests !== undefined ||
-                               bio !== undefined;
+    const hasProfileUpdates =
+      fullName !== undefined ||
+      photoUrl !== undefined ||
+      archetypes !== undefined ||
+      interests !== undefined ||
+      bio !== undefined;
 
     return this.prisma.user.update({
       where: { id },

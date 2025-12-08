@@ -8,9 +8,7 @@ export declare class JourneysController {
     constructor(journeysService: JourneysService, usersService: UsersService);
     create(req: any, dto: CreateJourneyDto): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: import("@prisma/client").$Enums.JourneyStatus;
+        userId: string;
         origin: string | null;
         destination: string | null;
         startDate: Date | null;
@@ -18,14 +16,14 @@ export declare class JourneysController {
         tripType: string | null;
         title: string | null;
         description: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
-        userId: string;
+        status: import(".prisma/client").$Enums.JourneyStatus;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     findAll(req: any, scope?: 'self' | 'connections' | 'public', take?: number, skip?: number): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: import("@prisma/client").$Enums.JourneyStatus;
+        userId: string;
         origin: string | null;
         destination: string | null;
         startDate: Date | null;
@@ -33,34 +31,35 @@ export declare class JourneysController {
         tripType: string | null;
         title: string | null;
         description: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
-        userId: string;
+        status: import(".prisma/client").$Enums.JourneyStatus;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
     }[]>;
     findOne(id: string, req: any): Promise<{
         user: {
             profile: {
+                userId: string;
                 fullName: string | null;
+                avatarUrl: string | null;
+                visibility: import(".prisma/client").$Enums.Visibility;
+                verificationLevel: number;
                 archetypes: string[];
                 interests: string[];
                 bio: string | null;
-                avatarUrl: string | null;
-                visibility: import("@prisma/client").$Enums.Visibility;
-                verificationLevel: number;
-                userId: string;
             } | null;
         } & {
             id: string;
             phone: string | null;
-            email: string;
             countryCode: string;
+            email: string;
+            onboardingComplete: boolean;
             createdAt: Date;
             updatedAt: Date;
         };
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: import("@prisma/client").$Enums.JourneyStatus;
+        userId: string;
         origin: string | null;
         destination: string | null;
         startDate: Date | null;
@@ -68,14 +67,14 @@ export declare class JourneysController {
         tripType: string | null;
         title: string | null;
         description: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
-        userId: string;
+        status: import(".prisma/client").$Enums.JourneyStatus;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     update(id: string, dto: UpdateJourneyDto, req: any): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: import("@prisma/client").$Enums.JourneyStatus;
+        userId: string;
         origin: string | null;
         destination: string | null;
         startDate: Date | null;
@@ -83,14 +82,14 @@ export declare class JourneysController {
         tripType: string | null;
         title: string | null;
         description: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
-        userId: string;
+        status: import(".prisma/client").$Enums.JourneyStatus;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     remove(id: string, req: any): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: import("@prisma/client").$Enums.JourneyStatus;
+        userId: string;
         origin: string | null;
         destination: string | null;
         startDate: Date | null;
@@ -98,7 +97,9 @@ export declare class JourneysController {
         tripType: string | null;
         title: string | null;
         description: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
-        userId: string;
+        status: import(".prisma/client").$Enums.JourneyStatus;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
 }

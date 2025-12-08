@@ -1,4 +1,13 @@
-import { IsString, IsOptional, IsArray, MaxLength, ArrayMaxSize, IsEmail, IsUrl, Matches } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  MaxLength,
+  ArrayMaxSize,
+  IsEmail,
+  IsUrl,
+  Matches,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class UpdateUserDto {
@@ -15,14 +24,17 @@ export class UpdateUserDto {
   email?: string;
 
   @IsOptional()
-  @IsUrl({
-    protocols: ['https'],
-    require_protocol: true,
-    require_valid_protocol: true
-  }, { message: 'Photo URL must be a valid HTTPS URL' })
+  @IsUrl(
+    {
+      protocols: ['https'],
+      require_protocol: true,
+      require_valid_protocol: true,
+    },
+    { message: 'Photo URL must be a valid HTTPS URL' },
+  )
   @MaxLength(2048)
   @Matches(/^https:\/\/([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/, {
-    message: 'Photo URL must be a valid HTTPS URL'
+    message: 'Photo URL must be a valid HTTPS URL',
   })
   photoUrl?: string;
 
@@ -31,7 +43,10 @@ export class UpdateUserDto {
   @ArrayMaxSize(2)
   @IsString({ each: true })
   @MaxLength(50, { each: true })
-  @Matches(/^[a-zA-Z0-9\s-]+$/, { each: true, message: 'Invalid archetype format' })
+  @Matches(/^[a-zA-Z0-9\s-]+$/, {
+    each: true,
+    message: 'Invalid archetype format',
+  })
   archetypes?: string[];
 
   @IsOptional()
@@ -39,7 +54,10 @@ export class UpdateUserDto {
   @ArrayMaxSize(20)
   @IsString({ each: true })
   @MaxLength(50, { each: true })
-  @Matches(/^[a-zA-Z0-9\s-]+$/, { each: true, message: 'Invalid interest format' })
+  @Matches(/^[a-zA-Z0-9\s-]+$/, {
+    each: true,
+    message: 'Invalid interest format',
+  })
   interests?: string[];
 
   @IsOptional()
