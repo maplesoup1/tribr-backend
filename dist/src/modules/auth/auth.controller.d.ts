@@ -1,6 +1,8 @@
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
+import { LoginDto } from './dto/login.dto';
 export declare class AuthController {
     private readonly authService;
     constructor(authService: AuthService);
@@ -16,8 +18,14 @@ export declare class AuthController {
         accessToken: string | undefined;
         refreshToken: string | undefined;
     }>;
-    resendOtp(email: string): Promise<{
+    resendOtp(dto: ResendOtpDto): Promise<{
         message: string;
         email: string;
+    }>;
+    login(loginDto: LoginDto): Promise<{
+        message: string;
+        user: import("@supabase/auth-js").User;
+        accessToken: string;
+        refreshToken: string;
     }>;
 }

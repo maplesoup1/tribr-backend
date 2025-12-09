@@ -22,6 +22,8 @@ const auth_module_1 = require("./modules/auth/auth.module");
 const users_module_1 = require("./modules/users/users.module");
 const connections_module_1 = require("./modules/connections/connections.module");
 const journeys_module_1 = require("./modules/journeys/journeys.module");
+const chat_module_1 = require("./modules/chat/chat.module");
+const badges_module_1 = require("./modules/badges/badges.module");
 const config_2 = __importDefault(require("./config/config"));
 let AppModule = class AppModule {
 };
@@ -45,6 +47,8 @@ exports.AppModule = AppModule = __decorate([
             users_module_1.UsersModule,
             connections_module_1.ConnectionsModule,
             journeys_module_1.JourneysModule,
+            chat_module_1.ChatModule,
+            badges_module_1.BadgesModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

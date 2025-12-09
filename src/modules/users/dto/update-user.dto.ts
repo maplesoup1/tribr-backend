@@ -65,4 +65,16 @@ export class UpdateUserDto {
   @MaxLength(500)
   @Transform(({ value }) => value?.trim())
   bio?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  @Transform(({ value }) => value?.trim())
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  @Transform(({ value }) => value?.trim())
+  country?: string;
 }

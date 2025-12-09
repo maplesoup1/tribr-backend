@@ -43,6 +43,8 @@ export declare class JourneysService {
                 avatarUrl: string | null;
                 visibility: import(".prisma/client").$Enums.Visibility;
                 verificationLevel: number;
+                city: string | null;
+                country: string | null;
                 archetypes: string[];
                 interests: string[];
                 bio: string | null;

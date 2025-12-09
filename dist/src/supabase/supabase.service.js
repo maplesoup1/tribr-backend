@@ -30,6 +30,28 @@ let SupabaseService = class SupabaseService {
             },
         });
     }
+    async onModuleInit() {
+        await this.ensureStorageBuckets();
+    }
+    async ensureStorageBuckets() {
+        const buckets = ['avatars'];
+        for (const bucketName of buckets) {
+            const { data: existingBucket } = await this.supabase.storage.getBucket(bucketName);
+            if (!existingBucket) {
+                const { error } = await this.supabase.storage.createBucket(bucketName, {
+                    public: true,
+                    fileSizeLimit: 5 * 1024 * 1024,
+                    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+                });
+                if (error && !error.message.includes('already exists')) {
+                    console.error(`Failed to create bucket ${bucketName}:`, error);
+                }
+                else {
+                    console.log(`Storage bucket '${bucketName}' ready`);
+                }
+            }
+        }
+    }
     getClient() {
         return this.supabase;
     }

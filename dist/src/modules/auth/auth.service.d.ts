@@ -1,6 +1,7 @@
 import { SupabaseService } from '../../supabase/supabase.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { LoginDto } from './dto/login.dto';
 export declare class AuthService {
     private readonly supabaseService;
     constructor(supabaseService: SupabaseService);
@@ -11,13 +12,19 @@ export declare class AuthService {
     }>;
     verifyOtp(verifyOtpDto: VerifyOtpDto): Promise<{
         message: string;
-        user: import("@supabase/auth-js").User;
-        session: import("@supabase/auth-js").Session | null;
+        user: import("@supabase/supabase-js").AuthUser;
+        session: import("@supabase/supabase-js").AuthSession | null;
         accessToken: string | undefined;
         refreshToken: string | undefined;
     }>;
     resendOtp(email: string): Promise<{
         message: string;
         email: string;
+    }>;
+    login(loginDto: LoginDto): Promise<{
+        message: string;
+        user: import("@supabase/supabase-js").AuthUser;
+        accessToken: string;
+        refreshToken: string;
     }>;
 }

@@ -17,6 +17,8 @@ const common_1 = require("@nestjs/common");
 const auth_service_1 = require("./auth.service");
 const sign_up_dto_1 = require("./dto/sign-up.dto");
 const verify_otp_dto_1 = require("./dto/verify-otp.dto");
+const resend_otp_dto_1 = require("./dto/resend-otp.dto");
+const login_dto_1 = require("./dto/login.dto");
 let AuthController = class AuthController {
     authService;
     constructor(authService) {
@@ -28,8 +30,11 @@ let AuthController = class AuthController {
     async verifyOtp(verifyOtpDto) {
         return this.authService.verifyOtp(verifyOtpDto);
     }
-    async resendOtp(email) {
-        return this.authService.resendOtp(email);
+    async resendOtp(dto) {
+        return this.authService.resendOtp(dto.email);
+    }
+    async login(loginDto) {
+        return this.authService.login(loginDto);
     }
 };
 exports.AuthController = AuthController;
@@ -52,11 +57,19 @@ __decorate([
 __decorate([
     (0, common_1.Post)('resend-otp'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Body)('email')),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [resend_otp_dto_1.ResendOtpDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "resendOtp", null);
+__decorate([
+    (0, common_1.Post)('login'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [login_dto_1.LoginDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "login", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

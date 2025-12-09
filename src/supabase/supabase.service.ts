@@ -1,5 +1,6 @@
 import {
   Injectable,
+  OnModuleInit,
   UnauthorizedException,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -7,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 @Injectable()
-export class SupabaseService {
+export class SupabaseService implements OnModuleInit {
   private supabase: SupabaseClient;
 
   constructor(private configService: ConfigService) {
@@ -28,6 +29,37 @@ export class SupabaseService {
         persistSession: false,
       },
     });
+  }
+
+  async onModuleInit() {
+    await this.ensureStorageBuckets();
+  }
+
+  /**
+   * Ensure required storage buckets exist
+   */
+  private async ensureStorageBuckets() {
+    const buckets = ['avatars'];
+
+    for (const bucketName of buckets) {
+      const { data: existingBucket } = await this.supabase.storage.getBucket(
+        bucketName,
+      );
+
+      if (!existingBucket) {
+        const { error } = await this.supabase.storage.createBucket(bucketName, {
+          public: true,
+          fileSizeLimit: 5 * 1024 * 1024, // 5MB
+          allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+        });
+
+        if (error && !error.message.includes('already exists')) {
+          console.error(`Failed to create bucket ${bucketName}:`, error);
+        } else {
+          console.log(`Storage bucket '${bucketName}' ready`);
+        }
+      }
+    }
   }
 
   getClient(): SupabaseClient {

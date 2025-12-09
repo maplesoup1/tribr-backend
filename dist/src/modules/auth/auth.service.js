@@ -18,34 +18,21 @@ let AuthService = class AuthService {
         this.supabaseService = supabaseService;
     }
     async signUpWithOtp(signUpDto) {
-        const { email, password, fullName, phone } = signUpDto;
+        const { email, fullName } = signUpDto;
         try {
             const { data, error } = await this.supabaseService
-                .getClient()
-                .auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        full_name: fullName,
-                        phone: phone,
-                    },
-                    emailRedirectTo: undefined,
-                },
-            });
-            if (error) {
-                throw new common_1.BadRequestException(error.message);
-            }
-            const { error: otpError } = await this.supabaseService
                 .getClient()
                 .auth.signInWithOtp({
                 email,
                 options: {
-                    shouldCreateUser: false,
+                    shouldCreateUser: true,
+                    data: {
+                        full_name: fullName,
+                    },
                 },
             });
-            if (otpError) {
-                throw new common_1.BadRequestException(otpError.message);
+            if (error) {
+                throw new common_1.BadRequestException(error.message);
             }
             return {
                 message: 'OTP sent to your email. Please verify to complete registration.',
@@ -114,6 +101,35 @@ let AuthService = class AuthService {
                 throw error;
             }
             throw new common_1.BadRequestException('Failed to resend OTP. Please try again.');
+        }
+    }
+    async login(loginDto) {
+        const { email, password } = loginDto;
+        try {
+            const { data, error } = await this.supabaseService
+                .getClient()
+                .auth.signInWithPassword({
+                email,
+                password,
+            });
+            if (error) {
+                throw new common_1.UnauthorizedException(error.message);
+            }
+            if (!data.user || !data.session) {
+                throw new common_1.UnauthorizedException('Login failed');
+            }
+            return {
+                message: 'Login successful',
+                user: data.user,
+                accessToken: data.session.access_token,
+                refreshToken: data.session.refresh_token,
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.UnauthorizedException) {
+                throw error;
+            }
+            throw new common_1.BadRequestException('Failed to login. Please try again.');
         }
     }
 };

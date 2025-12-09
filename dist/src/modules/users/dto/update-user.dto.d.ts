@@ -5,4 +5,6 @@ export declare class UpdateUserDto {
     archetypes?: string[];
     interests?: string[];
     bio?: string;
+    city?: string;
+    country?: string;
 }

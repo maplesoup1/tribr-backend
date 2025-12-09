@@ -10,6 +10,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ConnectionsModule } from './modules/connections/connections.module';
 import { JourneysModule } from './modules/journeys/journeys.module';
+import { ChatModule } from './modules/chat/chat.module';
+import { BadgesModule } from './modules/badges/badges.module';
 import configuration from './config/config';
 
 @Module({
@@ -30,6 +32,8 @@ import configuration from './config/config';
     UsersModule,
     ConnectionsModule,
     JourneysModule,
+    ChatModule,
+    BadgesModule,
   ],
   controllers: [AppController],
   providers: [

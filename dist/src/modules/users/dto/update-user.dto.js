@@ -19,6 +19,8 @@ class UpdateUserDto {
     archetypes;
     interests;
     bio;
+    city;
+    country;
 }
 exports.UpdateUserDto = UpdateUserDto;
 __decorate([
@@ -79,4 +81,18 @@ __decorate([
     (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "bio", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(100),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
+    __metadata("design:type", String)
+], UpdateUserDto.prototype, "city", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(100),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
+    __metadata("design:type", String)
+], UpdateUserDto.prototype, "country", void 0);
 //# sourceMappingURL=update-user.dto.js.map

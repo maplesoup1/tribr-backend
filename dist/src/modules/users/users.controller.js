@@ -14,6 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
+const platform_express_1 = require("@nestjs/platform-express");
 const users_service_1 = require("./users.service");
 const update_user_dto_1 = require("./dto/update-user.dto");
 const supabase_auth_guard_1 = require("../../common/guards/supabase-auth.guard");
@@ -23,11 +24,27 @@ let UsersController = class UsersController {
         this.usersService = usersService;
     }
     async getCurrentUser(req) {
-        return this.usersService.getOrCreateFromSupabaseUser(req.user);
+        const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+        return this.usersService.getProfileWithStats(user.id);
     }
     async updateCurrentUser(req, updateUserDto) {
         const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
         return this.usersService.update(user.id, updateUserDto);
+    }
+    async uploadAvatar(req, file) {
+        if (!file) {
+            throw new common_1.BadRequestException('No file uploaded');
+        }
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+            throw new common_1.BadRequestException('Only JPEG, PNG, and WebP images are allowed');
+        }
+        const maxSize = 5 * 1024 * 1024;
+        if (file.size > maxSize) {
+            throw new common_1.BadRequestException('File size must be less than 5MB');
+        }
+        const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+        return this.usersService.uploadAvatar(user.id, file);
     }
 };
 exports.UsersController = UsersController;
@@ -46,6 +63,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, update_user_dto_1.UpdateUserDto]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "updateCurrentUser", null);
+__decorate([
+    (0, common_1.Post)('me/avatar'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "uploadAvatar", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),

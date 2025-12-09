@@ -1,22 +1,28 @@
-import { IsEmail, IsString, MinLength, IsNotEmpty } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  IsNotEmpty,
+  IsOptional,
+} from 'class-validator';
 
 export class SignUpDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MinLength(2)
-  fullName: string;
+  fullName?: string;
 
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
+  // Email-only OTP: optional phone/password
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MinLength(10)
-  phone: string;
+  phone?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MinLength(8)
-  password: string;
+  password?: string;
 }

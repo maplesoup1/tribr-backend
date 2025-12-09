@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const supabase_service_1 = require("../../supabase/supabase.service");
 let UsersService = class UsersService {
     prisma;
-    constructor(prisma) {
+    supabaseService;
+    constructor(prisma, supabaseService) {
         this.prisma = prisma;
+        this.supabaseService = supabaseService;
     }
     async findById(id) {
         const user = await this.prisma.user.findUnique({
@@ -40,12 +43,14 @@ let UsersService = class UsersService {
     }
     async update(id, updateUserDto) {
         await this.findById(id);
-        const { fullName, photoUrl, archetypes, interests, bio, ...userFields } = updateUserDto;
+        const { fullName, photoUrl, archetypes, interests, bio, city, country, ...userFields } = updateUserDto;
         const hasProfileUpdates = fullName !== undefined ||
             photoUrl !== undefined ||
             archetypes !== undefined ||
             interests !== undefined ||
-            bio !== undefined;
+            bio !== undefined ||
+            city !== undefined ||
+            country !== undefined;
         return this.prisma.user.update({
             where: { id },
             data: {
@@ -58,6 +63,8 @@ let UsersService = class UsersService {
                             ...(archetypes !== undefined && { archetypes }),
                             ...(interests !== undefined && { interests }),
                             ...(bio !== undefined && { bio }),
+                            ...(city !== undefined && { city }),
+                            ...(country !== undefined && { country }),
                         },
                     },
                 }),
@@ -132,10 +139,110 @@ let UsersService = class UsersService {
             fullName,
         });
     }
+    async uploadAvatar(userId, file) {
+        const supabase = this.supabaseService.getClient();
+        const bucketName = 'avatars';
+        const fileExt = file.originalname.split('.').pop() || 'jpg';
+        const fileName = `${userId}/${Date.now()}.${fileExt}`;
+        const { data, error } = await supabase.storage
+            .from(bucketName)
+            .upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+            upsert: true,
+        });
+        if (error) {
+            console.error('Storage upload error:', error);
+            throw new common_1.InternalServerErrorException('Failed to upload avatar');
+        }
+        const { data: urlData } = supabase.storage
+            .from(bucketName)
+            .getPublicUrl(fileName);
+        const avatarUrl = urlData.publicUrl;
+        const updatedUser = await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                profile: {
+                    update: {
+                        avatarUrl,
+                    },
+                },
+            },
+            include: {
+                profile: true,
+            },
+        });
+        return {
+            message: 'Avatar uploaded successfully',
+            avatarUrl,
+            user: updatedUser,
+        };
+    }
+    async getProfileWithStats(userId) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                profile: true,
+                badges: {
+                    include: {
+                        badge: true,
+                    },
+                },
+            },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException(`User with ID ${userId} not found`);
+        }
+        const connectionsCount = await this.prisma.connection.count({
+            where: {
+                OR: [{ userA: userId }, { userB: userId }],
+                status: 'accepted',
+            },
+        });
+        const tripsCount = await this.prisma.journey.count({
+            where: {
+                userId,
+                status: 'completed',
+            },
+        });
+        const trustScore = this.calculateTrustScore(user, connectionsCount, tripsCount);
+        const badges = user.badges.map((ub) => ({
+            code: ub.badge.code,
+            name: ub.badge.name,
+            description: ub.badge.description,
+            icon: ub.badge.icon,
+            earnedAt: ub.earnedAt,
+        }));
+        return {
+            ...user,
+            badges,
+            stats: {
+                trustScore,
+                tripsCount,
+                connectionsCount,
+            },
+        };
+    }
+    calculateTrustScore(user, connections, trips) {
+        let score = 0;
+        const verificationLevel = user.profile?.verificationLevel || 0;
+        if (verificationLevel >= 3) {
+            score += 50;
+        }
+        else if (verificationLevel === 2) {
+            score += 30;
+        }
+        else if (verificationLevel === 1) {
+            score += 10;
+        }
+        score += Math.min(connections * 2, 25);
+        score += Math.min(trips * 5, 25);
+        return Math.min(score, 100);
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        supabase_service_1.SupabaseService])
 ], UsersService);
 //# sourceMappingURL=users.service.js.map

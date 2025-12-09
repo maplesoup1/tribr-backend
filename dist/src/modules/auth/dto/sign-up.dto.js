@@ -19,8 +19,8 @@ class SignUpDto {
 }
 exports.SignUpDto = SignUpDto;
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.MinLength)(2),
     __metadata("design:type", String)
 ], SignUpDto.prototype, "fullName", void 0);
@@ -30,14 +30,13 @@ __decorate([
     __metadata("design:type", String)
 ], SignUpDto.prototype, "email", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MinLength)(10),
     __metadata("design:type", String)
 ], SignUpDto.prototype, "phone", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.MinLength)(8),
     __metadata("design:type", String)
 ], SignUpDto.prototype, "password", void 0);

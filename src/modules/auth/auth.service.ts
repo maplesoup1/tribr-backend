@@ -3,49 +3,35 @@ import {
   BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { AuthResponse } from '@supabase/supabase-js';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async signUpWithOtp(signUpDto: SignUpDto) {
-    const { email, password, fullName, phone } = signUpDto;
+    const { email, fullName } = signUpDto;
 
     try {
-      // Create user with Supabase Auth
-      const { data, error } = await this.supabaseService
+      // Email-only OTP flow: single call to signInWithOtp, create user if needed
+      const { data, error }: AuthResponse = await this.supabaseService
         .getClient()
-        .auth.signUp({
+        .auth.signInWithOtp({
           email,
-          password,
           options: {
+            shouldCreateUser: true,
             data: {
               full_name: fullName,
-              phone: phone,
             },
-            emailRedirectTo: undefined, // Disable magic link
           },
         });
 
       if (error) {
         throw new BadRequestException(error.message);
-      }
-
-      // Send OTP to email
-      const { error: otpError } = await this.supabaseService
-        .getClient()
-        .auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: false, // User already created
-          },
-        });
-
-      if (otpError) {
-        throw new BadRequestException(otpError.message);
       }
 
       return {
@@ -123,6 +109,39 @@ export class AuthService {
         throw error;
       }
       throw new BadRequestException('Failed to resend OTP. Please try again.');
+    }
+  }
+
+  async login(loginDto: LoginDto) {
+    const { email, password } = loginDto;
+
+    try {
+      const { data, error } = await this.supabaseService
+        .getClient()
+        .auth.signInWithPassword({
+          email,
+          password,
+        });
+
+      if (error) {
+        throw new UnauthorizedException(error.message);
+      }
+
+      if (!data.user || !data.session) {
+        throw new UnauthorizedException('Login failed');
+      }
+
+      return {
+        message: 'Login successful',
+        user: data.user,
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to login. Please try again.');
     }
   }
 }
