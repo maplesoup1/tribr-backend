@@ -136,6 +136,7 @@ export declare class UsersService {
         createdAt: Date;
         updatedAt: Date;
     }>;
+    private upsertUserWithId;
     uploadAvatar(userId: string, file: Express.Multer.File): Promise<{
         message: string;
         avatarUrl: string;

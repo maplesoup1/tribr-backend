@@ -136,15 +136,74 @@ let UsersService = class UsersService {
     }
     async getOrCreateFromSupabaseUser(supabaseUser) {
         const email = supabaseUser?.email;
+        const authUid = supabaseUser?.id || supabaseUser?.sub;
         if (!email) {
             throw new common_1.BadRequestException('Email is required from Supabase user');
         }
+        if (!authUid) {
+            throw new common_1.BadRequestException('User ID is required from Supabase user');
+        }
         const phone = this.normalizePhone(supabaseUser?.phone);
         const fullName = supabaseUser?.user_metadata?.full_name;
-        return this.upsertUser({
+        return this.upsertUserWithId({
+            id: authUid,
             phone,
             email,
             fullName,
+        });
+    }
+    async upsertUserWithId(data) {
+        const phone = this.normalizePhone(data.phone);
+        const existingById = await this.prisma.user.findUnique({
+            where: { id: data.id },
+        });
+        const existingByEmail = await this.prisma.user.findUnique({
+            where: { email: data.email },
+        });
+        let user;
+        if (existingById) {
+            user = await this.prisma.user.update({
+                where: { id: data.id },
+                data: {
+                    ...(phone !== undefined && { phone }),
+                    ...(data.countryCode && { countryCode: data.countryCode }),
+                },
+            });
+        }
+        else if (existingByEmail) {
+            user = await this.prisma.user.update({
+                where: { email: data.email },
+                data: {
+                    id: data.id,
+                    ...(phone !== undefined && { phone }),
+                    ...(data.countryCode && { countryCode: data.countryCode }),
+                },
+            });
+        }
+        else {
+            user = await this.prisma.user.create({
+                data: {
+                    id: data.id,
+                    email: data.email,
+                    ...(phone && { phone }),
+                    countryCode: data.countryCode || '+1',
+                },
+            });
+        }
+        await this.prisma.profile.upsert({
+            where: { userId: user.id },
+            update: {
+                ...(data.fullName !== undefined && { fullName: data.fullName }),
+            },
+            create: {
+                userId: user.id,
+                fullName: data.fullName,
+                travelStyles: [],
+            },
+        });
+        return this.prisma.user.findUniqueOrThrow({
+            where: { id: user.id },
+            include: { profile: true },
         });
     }
     async uploadAvatar(userId, file) {

@@ -191,23 +191,103 @@ export class UsersService {
   }
 
   /**
-   * Resolve internal user from Supabase user payload (by email), create if missing.
-   * Email is required as unique identifier.
+   * Resolve internal user from Supabase user payload, create if missing.
+   * Uses Supabase Auth UID as the user ID for consistency.
    */
   async getOrCreateFromSupabaseUser(supabaseUser: any) {
     const email = supabaseUser?.email;
+    const authUid = supabaseUser?.id || supabaseUser?.sub;
 
     if (!email) {
       throw new BadRequestException('Email is required from Supabase user');
     }
 
+    if (!authUid) {
+      throw new BadRequestException('User ID is required from Supabase user');
+    }
+
     const phone = this.normalizePhone(supabaseUser?.phone);
     const fullName = supabaseUser?.user_metadata?.full_name;
 
-    return this.upsertUser({
+    return this.upsertUserWithId({
+      id: authUid,
       phone,
       email,
       fullName,
+    });
+  }
+
+  /**
+   * Upsert user with explicit ID (used when we want to match Supabase Auth UID)
+   */
+  private async upsertUserWithId(data: {
+    id: string;
+    email: string;
+    phone?: string;
+    countryCode?: string;
+    fullName?: string;
+  }) {
+    const phone = this.normalizePhone(data.phone);
+
+    // Try to find by ID first, then by email
+    const existingById = await this.prisma.user.findUnique({
+      where: { id: data.id },
+    });
+
+    const existingByEmail = await this.prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
+    let user: { id: string; email: string; phone: string | null; countryCode: string };
+
+    if (existingById) {
+      // User exists with this ID, update it
+      user = await this.prisma.user.update({
+        where: { id: data.id },
+        data: {
+          ...(phone !== undefined && { phone }),
+          ...(data.countryCode && { countryCode: data.countryCode }),
+        },
+      });
+    } else if (existingByEmail) {
+      // User exists with this email but different ID - update the ID
+      // This handles migration from old auto-generated IDs to Auth UIDs
+      user = await this.prisma.user.update({
+        where: { email: data.email },
+        data: {
+          id: data.id,
+          ...(phone !== undefined && { phone }),
+          ...(data.countryCode && { countryCode: data.countryCode }),
+        },
+      });
+    } else {
+      // Create new user with the specified ID
+      user = await this.prisma.user.create({
+        data: {
+          id: data.id,
+          email: data.email,
+          ...(phone && { phone }),
+          countryCode: data.countryCode || '+1',
+        },
+      });
+    }
+
+    // Upsert profile
+    await this.prisma.profile.upsert({
+      where: { userId: user.id },
+      update: {
+        ...(data.fullName !== undefined && { fullName: data.fullName }),
+      },
+      create: {
+        userId: user.id,
+        fullName: data.fullName,
+        travelStyles: [],
+      },
+    });
+
+    return this.prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      include: { profile: true },
     });
   }
 
