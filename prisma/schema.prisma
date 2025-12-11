@@ -141,6 +141,7 @@ model Profile {
   // Legacy fields (will be removed later or moved to separate table)
   archetypes        String[]    @default([])
   interests         String[]    @default([])
+  travelStyles      String[]    @default([])
   bio               String?
 
   user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -335,6 +336,7 @@ model UserLocation {
 
   user       User                                        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([location], type: Gist)
   @@map("user_locations")
 }
 

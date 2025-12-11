@@ -4,6 +4,7 @@ export declare class UpdateUserDto {
     photoUrl?: string;
     archetypes?: string[];
     interests?: string[];
+    travelStyles?: string[];
     bio?: string;
     city?: string;
     country?: string;

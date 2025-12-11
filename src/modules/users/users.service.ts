@@ -15,6 +15,16 @@ export class UsersService {
     private readonly supabaseService: SupabaseService,
   ) {}
 
+  /**
+   * Normalize phone to avoid unique constraint collisions.
+   * - Trim whitespace
+   * - Treat empty strings as undefined (so we don't write "" into a unique column)
+   */
+  private normalizePhone(phone?: string): string | undefined {
+    const trimmed = phone?.trim();
+    return trimmed ? trimmed : undefined;
+  }
+
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -51,6 +61,7 @@ export class UsersService {
       photoUrl,
       archetypes,
       interests,
+      travelStyles,
       bio,
       city,
       country,
@@ -63,6 +74,7 @@ export class UsersService {
       photoUrl !== undefined ||
       archetypes !== undefined ||
       interests !== undefined ||
+      travelStyles !== undefined ||
       bio !== undefined ||
       city !== undefined ||
       country !== undefined;
@@ -79,6 +91,7 @@ export class UsersService {
               ...(photoUrl !== undefined && { avatarUrl: photoUrl }),
               ...(archetypes !== undefined && { archetypes }),
               ...(interests !== undefined && { interests }),
+              ...(travelStyles !== undefined && { travelStyles }),
               ...(bio !== undefined && { bio }),
               ...(city !== undefined && { city }),
               ...(country !== undefined && { country }),
@@ -98,21 +111,29 @@ export class UsersService {
     email: string;
     fullName?: string;
   }) {
-    return this.prisma.user.create({
+    const phone = this.normalizePhone(data.phone);
+
+    // Step 1: Create user WITHOUT nested profile (avoids P2002 errors)
+    const user = await this.prisma.user.create({
       data: {
-        phone: data.phone,
+        ...(phone && { phone }),
         countryCode: data.countryCode || '+1',
         email: data.email,
-        // Create profile at the same time - fullName is on Profile model, not User
-        profile: {
-          create: {
-            fullName: data.fullName,
-          },
-        },
       },
-      include: {
-        profile: true,
+    });
+
+    // Step 2: Create profile separately
+    await this.prisma.profile.create({
+      data: {
+        userId: user.id,
+        fullName: data.fullName,
       },
+    });
+
+    // Step 3: Return user with profile included (non-null assertion safe here)
+    return this.prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      include: { profile: true },
     });
   }
 
@@ -126,42 +147,46 @@ export class UsersService {
     countryCode?: string;
     email?: string;
     fullName?: string;
+    travelStyles?: string[];
   }) {
     if (!data.email) {
       throw new BadRequestException('Email is required');
     }
 
-    return this.prisma.user.upsert({
+    const phone = this.normalizePhone(data.phone);
+
+    // Step 1: Upsert user WITHOUT nested profile (avoids P2002 errors)
+    const user = await this.prisma.user.upsert({
       where: { email: data.email },
       update: {
-        ...(data.phone !== undefined && { phone: data.phone }),
+        ...(phone !== undefined && { phone }),
         ...(data.countryCode && { countryCode: data.countryCode }),
-        // Upsert profile to handle both existing and new users
-        profile: {
-          upsert: {
-            update: {
-              fullName: data.fullName,
-            },
-            create: {
-              fullName: data.fullName,
-            },
-          },
-        },
       },
       create: {
-        phone: data.phone,
+        ...(phone && { phone }),
         countryCode: data.countryCode || '+1',
         email: data.email,
-        // Create profile at the same time
-        profile: {
-          create: {
-            fullName: data.fullName,
-          },
-        },
       },
-      include: {
-        profile: true,
+    });
+
+    // Step 2: Upsert profile separately
+    await this.prisma.profile.upsert({
+      where: { userId: user.id },
+      update: {
+        ...(data.fullName !== undefined && { fullName: data.fullName }),
+        ...(data.travelStyles !== undefined && { travelStyles: data.travelStyles }),
       },
+      create: {
+        userId: user.id,
+        fullName: data.fullName,
+        travelStyles: data.travelStyles ?? [],
+      },
+    });
+
+    // Step 3: Return user with profile included (non-null assertion safe here)
+    return this.prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      include: { profile: true },
     });
   }
 
@@ -176,7 +201,7 @@ export class UsersService {
       throw new BadRequestException('Email is required from Supabase user');
     }
 
-    const phone = supabaseUser?.phone;
+    const phone = this.normalizePhone(supabaseUser?.phone);
     const fullName = supabaseUser?.user_metadata?.full_name;
 
     return this.upsertUser({
@@ -217,19 +242,17 @@ export class UsersService {
 
     const avatarUrl = urlData.publicUrl;
 
-    // Update user profile with avatar URL
-    const updatedUser = await this.prisma.user.update({
+    // Upsert profile with avatar URL (handles both existing and missing profile)
+    await this.prisma.profile.upsert({
+      where: { userId },
+      update: { avatarUrl },
+      create: { userId, avatarUrl },
+    });
+
+    // Fetch updated user with profile
+    const updatedUser = await this.prisma.user.findUnique({
       where: { id: userId },
-      data: {
-        profile: {
-          update: {
-            avatarUrl,
-          },
-        },
-      },
-      include: {
-        profile: true,
-      },
+      include: { profile: true },
     });
 
     return {
@@ -300,6 +323,101 @@ export class UsersService {
         connectionsCount,
       },
     };
+  }
+
+  /**
+   * Update user location using PostGIS
+   */
+  async updateLocation(
+    userId: string,
+    latitude: number,
+    longitude: number,
+    privacy?: string,
+  ) {
+    // Use raw query to handle PostGIS geography type
+    await this.prisma.$executeRaw`
+      INSERT INTO user_locations ("userId", location, "updatedAt", privacy)
+      VALUES (
+        ${userId},
+        ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography,
+        NOW(),
+        COALESCE(${privacy}::"Visibility", 'connections'::"Visibility")
+      )
+      ON CONFLICT ("userId") DO UPDATE SET
+        location = ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography,
+        "updatedAt" = NOW(),
+        privacy = COALESCE(${privacy}::"Visibility", user_locations.privacy)
+    `;
+
+    return { message: 'Location updated successfully' };
+  }
+
+  async findNearby(
+    currentUserId: string,
+    latitude: number,
+    longitude: number,
+    radiusKm = 50,
+    limit = 20,
+  ) {
+    const radiusMeters = Math.max(1, Math.min(radiusKm, 5000)) * 1000;
+    const safeLimit = Math.max(1, Math.min(limit, 200));
+
+    const results = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        fullName: string | null;
+        avatarUrl: string | null;
+        city: string | null;
+        country: string | null;
+        latitude: number;
+        longitude: number;
+        distance: number;
+        updatedAt: Date;
+      }>
+    >`
+      SELECT
+        u.id,
+        p."fullName",
+        p."avatarUrl",
+        p.city,
+        p.country,
+        ul."updatedAt",
+        ST_Y(ul.location::geometry) AS latitude,
+        ST_X(ul.location::geometry) AS longitude,
+        ST_Distance(
+          ul.location,
+          ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography
+        ) AS distance
+      FROM user_locations ul
+      JOIN users u ON u.id = ul."userId"
+      LEFT JOIN profiles p ON p."userId" = u.id
+      WHERE
+        u.id <> ${currentUserId}
+        AND ul.location IS NOT NULL
+        AND (
+          ul.privacy = 'public'
+          OR (
+            ul.privacy = 'connections' AND EXISTS (
+              SELECT 1 FROM connections c
+              WHERE c.status = 'accepted'
+                AND (
+                  (c."userA" = ${currentUserId} AND c."userB" = u.id)
+                  OR
+                  (c."userB" = ${currentUserId} AND c."userA" = u.id)
+                )
+            )
+          )
+        )
+        AND ST_DWithin(
+          ul.location,
+          ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography,
+          ${radiusMeters}
+        )
+      ORDER BY distance ASC
+      LIMIT ${safeLimit}
+    `;
+
+    return results;
   }
 
   /**

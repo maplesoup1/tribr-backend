@@ -16,11 +16,15 @@ exports.ChatController = void 0;
 const common_1 = require("@nestjs/common");
 const chat_service_1 = require("./chat.service");
 const send_message_dto_1 = require("./dto/send-message.dto");
+const create_conversation_dto_1 = require("./dto/create-conversation.dto");
 const supabase_auth_guard_1 = require("../../common/guards/supabase-auth.guard");
 let ChatController = class ChatController {
     chatService;
     constructor(chatService) {
         this.chatService = chatService;
+    }
+    async createConversation(req, dto) {
+        return this.chatService.createConversation(req.user.id, dto.participantIds, dto.type);
     }
     async listConversations(req) {
         return this.chatService.listConversations(req.user.id);
@@ -31,8 +35,20 @@ let ChatController = class ChatController {
     async sendMessage(req, conversationId, dto) {
         return this.chatService.sendMessage(req.user.id, conversationId, dto.content);
     }
+    async markAsRead(req, conversationId) {
+        await this.chatService.markAsRead(req.user.id, conversationId);
+        return { success: true };
+    }
 };
 exports.ChatController = ChatController;
+__decorate([
+    (0, common_1.Post)('conversations'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, create_conversation_dto_1.CreateConversationDto]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "createConversation", null);
 __decorate([
     (0, common_1.Get)('conversations'),
     __param(0, (0, common_1.Req)()),
@@ -58,6 +74,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, send_message_dto_1.SendMessageDto]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "sendMessage", null);
+__decorate([
+    (0, common_1.Post)('conversations/:id/read'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "markAsRead", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),
     (0, common_1.Controller)('chat'),

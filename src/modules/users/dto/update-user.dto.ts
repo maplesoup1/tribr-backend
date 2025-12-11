@@ -61,6 +61,17 @@ export class UpdateUserDto {
   interests?: string[];
 
   @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
+  @Matches(/^[a-zA-Z0-9\s-]+$/, {
+    each: true,
+    message: 'Invalid travel style format',
+  })
+  travelStyles?: string[];
+
+  @IsOptional()
   @IsString()
   @MaxLength(500)
   @Transform(({ value }) => value?.trim())

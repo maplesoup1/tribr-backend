@@ -1,5 +1,7 @@
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateLocationDto } from './dto/update-location.dto';
+import { NearbyQueryDto } from './dto/nearby-query.dto';
 export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
@@ -26,6 +28,7 @@ export declare class UsersController {
             country: string | null;
             archetypes: string[];
             interests: string[];
+            travelStyles: string[];
             bio: string | null;
         } | null;
         id: string;
@@ -47,6 +50,7 @@ export declare class UsersController {
             country: string | null;
             archetypes: string[];
             interests: string[];
+            travelStyles: string[];
             bio: string | null;
         } | null;
     } & {
@@ -61,7 +65,7 @@ export declare class UsersController {
     uploadAvatar(req: any, file: Express.Multer.File): Promise<{
         message: string;
         avatarUrl: string;
-        user: {
+        user: ({
             profile: {
                 userId: string;
                 fullName: string | null;
@@ -72,6 +76,7 @@ export declare class UsersController {
                 country: string | null;
                 archetypes: string[];
                 interests: string[];
+                travelStyles: string[];
                 bio: string | null;
             } | null;
         } & {
@@ -82,6 +87,20 @@ export declare class UsersController {
             onboardingComplete: boolean;
             createdAt: Date;
             updatedAt: Date;
-        };
+        }) | null;
     }>;
+    updateLocation(req: any, updateLocationDto: UpdateLocationDto): Promise<{
+        message: string;
+    }>;
+    getNearby(req: any, query: NearbyQueryDto): Promise<{
+        id: string;
+        fullName: string | null;
+        avatarUrl: string | null;
+        city: string | null;
+        country: string | null;
+        latitude: number;
+        longitude: number;
+        distance: number;
+        updatedAt: Date;
+    }[]>;
 }

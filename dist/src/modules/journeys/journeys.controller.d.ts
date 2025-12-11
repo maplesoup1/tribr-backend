@@ -48,6 +48,7 @@ export declare class JourneysController {
                 country: string | null;
                 archetypes: string[];
                 interests: string[];
+                travelStyles: string[];
                 bio: string | null;
             } | null;
         } & {

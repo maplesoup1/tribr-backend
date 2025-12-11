@@ -18,6 +18,7 @@ class UpdateUserDto {
     photoUrl;
     archetypes;
     interests;
+    travelStyles;
     bio;
     city;
     country;
@@ -74,6 +75,18 @@ __decorate([
     }),
     __metadata("design:type", Array)
 ], UpdateUserDto.prototype, "interests", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ArrayMaxSize)(20),
+    (0, class_validator_1.IsString)({ each: true }),
+    (0, class_validator_1.MaxLength)(50, { each: true }),
+    (0, class_validator_1.Matches)(/^[a-zA-Z0-9\s-]+$/, {
+        each: true,
+        message: 'Invalid travel style format',
+    }),
+    __metadata("design:type", Array)
+], UpdateUserDto.prototype, "travelStyles", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

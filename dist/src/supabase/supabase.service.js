@@ -16,10 +16,12 @@ const supabase_js_1 = require("@supabase/supabase-js");
 let SupabaseService = class SupabaseService {
     configService;
     supabase;
+    anonClient;
     constructor(configService) {
         this.configService = configService;
         const supabaseUrl = this.configService.get('supabase.url');
         const supabaseKey = this.configService.get('supabase.serviceRoleKey');
+        const anonKey = this.configService.get('supabase.anonKey');
         if (!supabaseUrl || !supabaseKey) {
             throw new common_1.InternalServerErrorException('Supabase URL and Service Role Key must be provided');
         }
@@ -29,6 +31,17 @@ let SupabaseService = class SupabaseService {
                 persistSession: false,
             },
         });
+        if (anonKey) {
+            this.anonClient = (0, supabase_js_1.createClient)(supabaseUrl, anonKey, {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false,
+                },
+            });
+        }
+        else {
+            this.anonClient = this.supabase;
+        }
     }
     async onModuleInit() {
         await this.ensureStorageBuckets();
@@ -54,6 +67,9 @@ let SupabaseService = class SupabaseService {
     }
     getClient() {
         return this.supabase;
+    }
+    getAnonClient() {
+        return this.anonClient;
     }
     async verifyToken(token) {
         const { data: { user }, error, } = await this.supabase.auth.getUser(token);

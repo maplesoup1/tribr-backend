@@ -17,7 +17,9 @@ const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const users_service_1 = require("./users.service");
 const update_user_dto_1 = require("./dto/update-user.dto");
+const update_location_dto_1 = require("./dto/update-location.dto");
 const supabase_auth_guard_1 = require("../../common/guards/supabase-auth.guard");
+const nearby_query_dto_1 = require("./dto/nearby-query.dto");
 let UsersController = class UsersController {
     usersService;
     constructor(usersService) {
@@ -46,6 +48,14 @@ let UsersController = class UsersController {
         const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
         return this.usersService.uploadAvatar(user.id, file);
     }
+    async updateLocation(req, updateLocationDto) {
+        const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+        return this.usersService.updateLocation(user.id, updateLocationDto.latitude, updateLocationDto.longitude, updateLocationDto.privacy);
+    }
+    async getNearby(req, query) {
+        const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+        return this.usersService.findNearby(user.id, query.latitude, query.longitude, query.radiusKm, query.limit);
+    }
 };
 exports.UsersController = UsersController;
 __decorate([
@@ -72,6 +82,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "uploadAvatar", null);
+__decorate([
+    (0, common_1.Post)('me/location'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, update_location_dto_1.UpdateLocationDto]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "updateLocation", null);
+__decorate([
+    (0, common_1.Get)('nearby'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, nearby_query_dto_1.NearbyQueryDto]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getNearby", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),

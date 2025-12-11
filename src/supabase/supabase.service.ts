@@ -10,12 +10,14 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 @Injectable()
 export class SupabaseService implements OnModuleInit {
   private supabase: SupabaseClient;
+  private anonClient: SupabaseClient;
 
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('supabase.url');
     const supabaseKey = this.configService.get<string>(
       'supabase.serviceRoleKey',
     );
+    const anonKey = this.configService.get<string>('supabase.anonKey');
 
     if (!supabaseUrl || !supabaseKey) {
       throw new InternalServerErrorException(
@@ -29,6 +31,18 @@ export class SupabaseService implements OnModuleInit {
         persistSession: false,
       },
     });
+
+    // Anon client for user-facing auth operations (OTP verification)
+    if (anonKey) {
+      this.anonClient = createClient(supabaseUrl, anonKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      });
+    } else {
+      this.anonClient = this.supabase;
+    }
   }
 
   async onModuleInit() {
@@ -64,6 +78,13 @@ export class SupabaseService implements OnModuleInit {
 
   getClient(): SupabaseClient {
     return this.supabase;
+  }
+
+  /**
+   * Get anon client for user-facing auth operations (OTP verification, sign-in)
+   */
+  getAnonClient(): SupabaseClient {
+    return this.anonClient;
   }
 
   /**

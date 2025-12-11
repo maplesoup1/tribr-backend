@@ -60,5 +60,17 @@ export declare class ChatService {
         deletedBy: string | null;
         journeyId: string | null;
     }>;
+    markAsRead(userId: string, conversationId: string): Promise<void>;
+    createConversation(userId: string, participantIds: string[], type?: 'dm' | 'group'): Promise<{
+        id: string;
+        type: import(".prisma/client").$Enums.ConversationType;
+        title: string | null;
+        ownerId: string;
+        lastMessageId: string | null;
+        lastMessageAt: Date | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
     private ensureParticipant;
 }

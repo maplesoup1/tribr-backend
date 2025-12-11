@@ -10,11 +10,14 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateLocationDto } from './dto/update-location.dto';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { NearbyQueryDto } from './dto/nearby-query.dto';
 
 @Controller('users')
 @UseGuards(SupabaseAuthGuard)
@@ -60,5 +63,31 @@ export class UsersController {
 
     const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
     return this.usersService.uploadAvatar(user.id, file);
+  }
+
+  @Post('me/location')
+  async updateLocation(
+    @Request() req,
+    @Body() updateLocationDto: UpdateLocationDto,
+  ) {
+    const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+    return this.usersService.updateLocation(
+      user.id,
+      updateLocationDto.latitude,
+      updateLocationDto.longitude,
+      updateLocationDto.privacy,
+    );
+  }
+
+  @Get('nearby')
+  async getNearby(@Request() req, @Query() query: NearbyQueryDto) {
+    const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+    return this.usersService.findNearby(
+      user.id,
+      query.latitude,
+      query.longitude,
+      query.radiusKm,
+      query.limit,
+    );
   }
 }

@@ -1,8 +1,20 @@
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './dto/send-message.dto';
+import { CreateConversationDto } from './dto/create-conversation.dto';
 export declare class ChatController {
     private readonly chatService;
     constructor(chatService: ChatService);
+    createConversation(req: any, dto: CreateConversationDto): Promise<{
+        id: string;
+        type: import(".prisma/client").$Enums.ConversationType;
+        title: string | null;
+        ownerId: string;
+        lastMessageId: string | null;
+        lastMessageAt: Date | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
     listConversations(req: any): Promise<({
         participants: {
             conversationId: string;
@@ -60,5 +72,8 @@ export declare class ChatController {
         deletedAt: Date | null;
         deletedBy: string | null;
         journeyId: string | null;
+    }>;
+    markAsRead(req: any, conversationId: string): Promise<{
+        success: boolean;
     }>;
 }

@@ -3,6 +3,7 @@ import { SignUpDto } from './dto/sign-up.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { LoginDto } from './dto/login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 export declare class AuthController {
     private readonly authService;
     constructor(authService: AuthService);
@@ -25,6 +26,10 @@ export declare class AuthController {
     login(loginDto: LoginDto): Promise<{
         message: string;
         user: import("@supabase/auth-js").User;
+        accessToken: string;
+        refreshToken: string;
+    }>;
+    refresh(dto: RefreshTokenDto): Promise<{
         accessToken: string;
         refreshToken: string;
     }>;

@@ -5,6 +5,7 @@ export declare class UsersService {
     private readonly prisma;
     private readonly supabaseService;
     constructor(prisma: PrismaService, supabaseService: SupabaseService);
+    private normalizePhone;
     findById(id: string): Promise<{
         id: string;
         phone: string | null;
@@ -43,6 +44,7 @@ export declare class UsersService {
             country: string | null;
             archetypes: string[];
             interests: string[];
+            travelStyles: string[];
             bio: string | null;
         } | null;
     } & {
@@ -70,6 +72,7 @@ export declare class UsersService {
             country: string | null;
             archetypes: string[];
             interests: string[];
+            travelStyles: string[];
             bio: string | null;
         } | null;
     } & {
@@ -86,6 +89,7 @@ export declare class UsersService {
         countryCode?: string;
         email?: string;
         fullName?: string;
+        travelStyles?: string[];
     }): Promise<{
         profile: {
             userId: string;
@@ -97,6 +101,7 @@ export declare class UsersService {
             country: string | null;
             archetypes: string[];
             interests: string[];
+            travelStyles: string[];
             bio: string | null;
         } | null;
     } & {
@@ -119,6 +124,7 @@ export declare class UsersService {
             country: string | null;
             archetypes: string[];
             interests: string[];
+            travelStyles: string[];
             bio: string | null;
         } | null;
     } & {
@@ -133,7 +139,7 @@ export declare class UsersService {
     uploadAvatar(userId: string, file: Express.Multer.File): Promise<{
         message: string;
         avatarUrl: string;
-        user: {
+        user: ({
             profile: {
                 userId: string;
                 fullName: string | null;
@@ -144,6 +150,7 @@ export declare class UsersService {
                 country: string | null;
                 archetypes: string[];
                 interests: string[];
+                travelStyles: string[];
                 bio: string | null;
             } | null;
         } & {
@@ -154,7 +161,7 @@ export declare class UsersService {
             onboardingComplete: boolean;
             createdAt: Date;
             updatedAt: Date;
-        };
+        }) | null;
     }>;
     getProfileWithStats(userId: string): Promise<{
         badges: {
@@ -179,6 +186,7 @@ export declare class UsersService {
             country: string | null;
             archetypes: string[];
             interests: string[];
+            travelStyles: string[];
             bio: string | null;
         } | null;
         id: string;
@@ -189,5 +197,19 @@ export declare class UsersService {
         createdAt: Date;
         updatedAt: Date;
     }>;
+    updateLocation(userId: string, latitude: number, longitude: number, privacy?: string): Promise<{
+        message: string;
+    }>;
+    findNearby(currentUserId: string, latitude: number, longitude: number, radiusKm?: number, limit?: number): Promise<{
+        id: string;
+        fullName: string | null;
+        avatarUrl: string | null;
+        city: string | null;
+        country: string | null;
+        latitude: number;
+        longitude: number;
+        distance: number;
+        updatedAt: Date;
+    }[]>;
     private calculateTrustScore;
 }

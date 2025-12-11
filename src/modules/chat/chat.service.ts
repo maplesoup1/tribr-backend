@@ -51,6 +51,59 @@ export class ChatService {
     return message;
   }
 
+  async markAsRead(userId: string, conversationId: string) {
+    await this.ensureParticipant(userId, conversationId);
+    await this.prisma.conversationParticipant.update({
+      where: {
+        conversationId_userId: {
+          conversationId,
+          userId,
+        },
+      },
+      data: {
+        lastReadAt: new Date(),
+      },
+    });
+  }
+
+  async createConversation(userId: string, participantIds: string[], type: 'dm' | 'group' = 'dm') {
+    // For DMs, check if one already exists
+    if (type === 'dm' && participantIds.length === 1) {
+      const otherUserId = participantIds[0];
+      const existingConvo = await this.prisma.conversation.findFirst({
+        where: {
+          type: 'dm',
+          AND: [
+            { participants: { some: { userId } } },
+            { participants: { some: { userId: otherUserId } } },
+          ],
+        },
+      });
+
+      if (existingConvo) {
+        return existingConvo;
+      }
+    }
+
+    const allParticipants = [...new Set([userId, ...participantIds])];
+
+    return this.prisma.conversation.create({
+      data: {
+        type,
+        ownerId: userId,
+        participants: {
+          create: allParticipants.map((pid) => ({
+            userId: pid,
+            role: pid === userId ? 'owner' : 'member',
+          })),
+        },
+      },
+      include: {
+        participants: true,
+      },
+    });
+  }
+
   private async ensureParticipant(userId: string, conversationId: string) {
     const convo = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
