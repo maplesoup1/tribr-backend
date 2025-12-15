@@ -11,11 +11,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabaseAuthGuard = void 0;
 const common_1 = require("@nestjs/common");
-const supabase_service_1 = require("../../supabase/supabase.service");
+const jwt_1 = require("@nestjs/jwt");
 let SupabaseAuthGuard = class SupabaseAuthGuard {
-    supabaseService;
-    constructor(supabaseService) {
-        this.supabaseService = supabaseService;
+    jwtService;
+    constructor(jwtService) {
+        this.jwtService = jwtService;
     }
     async canActivate(context) {
         const request = context.switchToHttp().getRequest();
@@ -25,11 +25,15 @@ let SupabaseAuthGuard = class SupabaseAuthGuard {
         }
         const token = authHeader.substring(7);
         try {
-            const user = await this.supabaseService.verifyToken(token);
-            if (!user || !user.id || !user.email) {
-                throw new common_1.UnauthorizedException('Invalid user data in token');
+            const payload = this.jwtService.verify(token);
+            const userId = payload?.sub || payload?.user_id || payload?.userId || payload?.id;
+            if (!userId) {
+                throw new common_1.UnauthorizedException('Invalid token payload');
             }
-            request.user = user;
+            request.user = {
+                id: userId,
+                email: payload?.email,
+            };
             return true;
         }
         catch (error) {
@@ -44,6 +48,6 @@ let SupabaseAuthGuard = class SupabaseAuthGuard {
 exports.SupabaseAuthGuard = SupabaseAuthGuard;
 exports.SupabaseAuthGuard = SupabaseAuthGuard = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [supabase_service_1.SupabaseService])
+    __metadata("design:paramtypes", [jwt_1.JwtService])
 ], SupabaseAuthGuard);
 //# sourceMappingURL=supabase-auth.guard.js.map

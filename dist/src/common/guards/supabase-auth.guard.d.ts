@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext } from '@nestjs/common';
-import { SupabaseService } from '../../supabase/supabase.service';
+import { JwtService } from '@nestjs/jwt';
 export declare class SupabaseAuthGuard implements CanActivate {
-    private readonly supabaseService;
-    constructor(supabaseService: SupabaseService);
+    private readonly jwtService;
+    constructor(jwtService: JwtService);
     canActivate(context: ExecutionContext): Promise<boolean>;
 }

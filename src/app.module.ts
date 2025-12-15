@@ -12,6 +12,7 @@ import { ConnectionsModule } from './modules/connections/connections.module';
 import { JourneysModule } from './modules/journeys/journeys.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { BadgesModule } from './modules/badges/badges.module';
+import { ActivitiesModule } from './modules/activities/activities.module';
 import configuration from './config/config';
 
 @Module({
@@ -34,6 +35,7 @@ import configuration from './config/config';
     JourneysModule,
     ChatModule,
     BadgesModule,
+    ActivitiesModule,
   ],
   controllers: [AppController],
   providers: [

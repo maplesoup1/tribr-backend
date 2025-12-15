@@ -4,11 +4,11 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
-import { SupabaseService } from '../../supabase/supabase.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(private readonly jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -23,14 +23,19 @@ export class SupabaseAuthGuard implements CanActivate {
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     try {
-      const user = await this.supabaseService.verifyToken(token);
+      const payload = this.jwtService.verify(token);
+      const userId =
+        payload?.sub || payload?.user_id || payload?.userId || payload?.id;
 
-      // Validate user data integrity
-      if (!user || !user.id || !user.email) {
-        throw new UnauthorizedException('Invalid user data in token');
+      if (!userId) {
+        throw new UnauthorizedException('Invalid token payload');
       }
 
-      request.user = user; // Attach user to request object
+      // Attach minimal user object to request
+      request.user = {
+        id: userId,
+        email: payload?.email,
+      };
       return true;
     } catch (error) {
       if (error instanceof UnauthorizedException) {

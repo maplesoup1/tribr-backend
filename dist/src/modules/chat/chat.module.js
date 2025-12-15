@@ -10,15 +10,27 @@ exports.ChatModule = void 0;
 const common_1 = require("@nestjs/common");
 const chat_service_1 = require("./chat.service");
 const chat_controller_1 = require("./chat.controller");
-const chat_gateway_1 = require("./chat.gateway");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const jwt_1 = require("@nestjs/jwt");
+const config_1 = require("@nestjs/config");
 let ChatModule = class ChatModule {
 };
 exports.ChatModule = ChatModule;
 exports.ChatModule = ChatModule = __decorate([
     (0, common_1.Module)({
+        imports: [
+            config_1.ConfigModule,
+            jwt_1.JwtModule.registerAsync({
+                imports: [config_1.ConfigModule],
+                inject: [config_1.ConfigService],
+                useFactory: (config) => ({
+                    secret: config.get('supabase.jwtSecret'),
+                    signOptions: { expiresIn: '1h' },
+                }),
+            }),
+        ],
         controllers: [chat_controller_1.ChatController],
-        providers: [chat_service_1.ChatService, chat_gateway_1.ChatGateway, prisma_service_1.PrismaService],
+        providers: [chat_service_1.ChatService, prisma_service_1.PrismaService],
     })
 ], ChatModule);
 //# sourceMappingURL=chat.module.js.map

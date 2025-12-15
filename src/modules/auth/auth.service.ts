@@ -28,7 +28,7 @@ export class AuthService {
         .auth.admin.listUsers();
 
       const userExists = existingUsers?.users?.some(
-        (user) => user.email?.toLowerCase() === email.toLowerCase(),
+        (user: any) => user.email?.toLowerCase() === email.toLowerCase(),
       );
 
       if (userExists) {

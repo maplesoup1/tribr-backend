@@ -72,6 +72,32 @@ enum TransportMode {
   other
 }
 
+// Activity-related enums
+enum ActivityTimeType {
+  flexible
+  specific
+}
+
+enum ActivityPrivacy {
+  open
+  private
+}
+
+enum ActivityStatus {
+  active
+  closed
+}
+
+enum ActivityParticipantStatus {
+  joined
+  pending
+}
+
+enum ActivityParticipantRole {
+  host
+  guest
+}
+
 // =======================================================
 //  1. CORE USER & IDENTITY
 // =======================================================
@@ -104,9 +130,11 @@ model User {
   deletedMessages    Message[] @relation("DeletedMessages")
   sentInvites        ConversationInvite[] @relation("InviterRelation")
   receivedInvites    ConversationInvite[] @relation("InviteeRelation")
-  location           UserLocation?
-  ownedConversations Conversation[] @relation("ConversationOwner")
-  badges             UserBadge[]
+  location              UserLocation?
+  ownedConversations    Conversation[] @relation("ConversationOwner")
+  badges                UserBadge[]
+  createdActivities     Activity[]
+  activityParticipants  ActivityParticipant[]
 
   @@index([email])
   @@index([phone])
@@ -133,6 +161,10 @@ model Profile {
   avatarUrl         String?
   visibility        Visibility  @default(public)
   verificationLevel Int         @default(0) @db.SmallInt
+
+  // Demographics (for activity eligibility checks)
+  gender            String?     // e.g., 'male', 'female', 'non-binary', 'other'
+  birthDate         DateTime?   @db.Date
 
   // Location
   city              String?
@@ -344,16 +376,36 @@ model UserLocation {
 //  8. BADGES & ACHIEVEMENTS
 // =======================================================
 
+enum BadgeCategory {
+  exploration
+  social
+  adventure
+  culture
+  milestone
+}
+
+enum BadgeRarity {
+  common
+  rare
+  epic
+  legendary
+}
+
 model Badge {
-  id          String      @id @default(uuid())
-  code        String      @unique
+  id          String         @id @default(uuid())
+  code        String         @unique
   name        String
   description String?
   icon        String?
-  createdAt   DateTime    @default(now())
+  category    BadgeCategory  @default(exploration)
+  rarity      BadgeRarity    @default(common)
+  requirement String?        // Human-readable requirement text
+  createdAt   DateTime       @default(now())
 
   userBadges  UserBadge[]
 
+  @@index([category])
+  @@index([rarity])
   @@map("badges")
 }
 
@@ -361,6 +413,7 @@ model UserBadge {
   userId    String
   badgeId   String
   earnedAt  DateTime @default(now())
+  progress  Int      @default(100)  // 0-100, 100 means fully unlocked
 
   user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   badge     Badge  @relation(fields: [badgeId], references: [id], onDelete: Cascade)
@@ -368,4 +421,51 @@ model UserBadge {
   @@id([userId, badgeId])
   @@index([userId])
   @@map("user_badges")
+}
+
+// =======================================================
+//  9. ACTIVITIES (Discover Feature)
+// =======================================================
+
+model Activity {
+  id              String                    @id @default(uuid())
+  creatorId       String
+  emoji           String?
+  description     String?                   @db.Text
+  date            DateTime                  @db.Date
+  timeType        ActivityTimeType          @default(flexible)
+  specificTime    DateTime?                 @db.Time
+  locationText    String?
+  location        Unsupported("geography(Point, 4326)")?
+  privacy         ActivityPrivacy           @default(open)
+  womenOnly       Boolean                   @default(false)
+  ageMin          Int                       @default(18)
+  ageMax          Int                       @default(99)
+  status          ActivityStatus            @default(active)
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  creator         User                      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  participants    ActivityParticipant[]
+
+  @@index([privacy, status, date])
+  @@index([creatorId])
+  @@index([location], type: Gist)
+  @@map("activities")
+}
+
+model ActivityParticipant {
+  activityId  String
+  userId      String
+  status      ActivityParticipantStatus  @default(joined)
+  role        ActivityParticipantRole    @default(guest)
+  joinedAt    DateTime                   @default(now())
+
+  activity    Activity  @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([activityId, userId])
+  @@index([userId, status])
+  @@index([activityId])
+  @@map("activity_participants")
 }

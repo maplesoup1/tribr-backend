@@ -40,6 +40,8 @@ export declare class UsersService {
             avatarUrl: string | null;
             visibility: import(".prisma/client").$Enums.Visibility;
             verificationLevel: number;
+            gender: string | null;
+            birthDate: Date | null;
             city: string | null;
             country: string | null;
             archetypes: string[];
@@ -68,6 +70,8 @@ export declare class UsersService {
             avatarUrl: string | null;
             visibility: import(".prisma/client").$Enums.Visibility;
             verificationLevel: number;
+            gender: string | null;
+            birthDate: Date | null;
             city: string | null;
             country: string | null;
             archetypes: string[];
@@ -97,6 +101,8 @@ export declare class UsersService {
             avatarUrl: string | null;
             visibility: import(".prisma/client").$Enums.Visibility;
             verificationLevel: number;
+            gender: string | null;
+            birthDate: Date | null;
             city: string | null;
             country: string | null;
             archetypes: string[];
@@ -120,6 +126,8 @@ export declare class UsersService {
             avatarUrl: string | null;
             visibility: import(".prisma/client").$Enums.Visibility;
             verificationLevel: number;
+            gender: string | null;
+            birthDate: Date | null;
             city: string | null;
             country: string | null;
             archetypes: string[];
@@ -147,6 +155,8 @@ export declare class UsersService {
                 avatarUrl: string | null;
                 visibility: import(".prisma/client").$Enums.Visibility;
                 verificationLevel: number;
+                gender: string | null;
+                birthDate: Date | null;
                 city: string | null;
                 country: string | null;
                 archetypes: string[];
@@ -183,6 +193,8 @@ export declare class UsersService {
             avatarUrl: string | null;
             visibility: import(".prisma/client").$Enums.Visibility;
             verificationLevel: number;
+            gender: string | null;
+            birthDate: Date | null;
             city: string | null;
             country: string | null;
             archetypes: string[];
