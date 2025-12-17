@@ -209,6 +209,16 @@ export class UsersService {
     const phone = this.normalizePhone(supabaseUser?.phone);
     const fullName = supabaseUser?.user_metadata?.full_name;
 
+    // Fast path: if user already exists, return without doing any writes
+    const existing = await this.prisma.user.findUnique({
+      where: { id: authUid },
+      include: { profile: true },
+    });
+    if (existing) {
+      return existing;
+    }
+
+    // Fallback: create/upsert user once (handles migration from old IDs)
     return this.upsertUserWithId({
       id: authUid,
       phone,
@@ -346,37 +356,36 @@ export class UsersService {
    * Get user profile with statistics (trust score, trips count, connections count)
    */
   async getProfileWithStats(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        profile: true,
-        badges: {
-          include: {
-            badge: true,
+    // Run profile fetch + counts in parallel to reduce latency
+    const [user, connectionsCount, tripsCount] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          profile: true,
+          badges: {
+            include: {
+              badge: true,
+            },
           },
         },
-      },
-    });
+      }),
+      this.prisma.connection.count({
+        where: {
+          OR: [{ userA: userId }, { userB: userId }],
+          status: 'accepted',
+        },
+      }),
+      this.prisma.journey.count({
+        where: {
+          userId,
+          status: 'completed',
+        },
+      }),
+    ]);
 
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
-
-    // Count accepted connections
-    const connectionsCount = await this.prisma.connection.count({
-      where: {
-        OR: [{ userA: userId }, { userB: userId }],
-        status: 'accepted',
-      },
-    });
-
-    // Count completed journeys (trips)
-    const tripsCount = await this.prisma.journey.count({
-      where: {
-        userId,
-        status: 'completed',
-      },
-    });
 
     // Calculate trust score
     const trustScore = this.calculateTrustScore(
