@@ -13,6 +13,7 @@ import { JourneysModule } from './modules/journeys/journeys.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { BadgesModule } from './modules/badges/badges.module';
 import { ActivitiesModule } from './modules/activities/activities.module';
+import { TravelWalletModule } from './modules/travel-wallet/travel-wallet.module';
 import configuration from './config/config';
 
 @Module({
@@ -36,6 +37,7 @@ import configuration from './config/config';
     ChatModule,
     BadgesModule,
     ActivitiesModule,
+    TravelWalletModule,
   ],
   controllers: [AppController],
   providers: [

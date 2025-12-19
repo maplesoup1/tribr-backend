@@ -52,6 +52,21 @@ let UsersController = class UsersController {
         const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
         return this.usersService.updateLocation(user.id, updateLocationDto.latitude, updateLocationDto.longitude, updateLocationDto.privacy);
     }
+    async uploadVideo(req, file) {
+        if (!file) {
+            throw new common_1.BadRequestException('No file uploaded');
+        }
+        const allowedMimeTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+            throw new common_1.BadRequestException('Only MP4, MOV, and WebM videos are allowed');
+        }
+        const maxSize = 50 * 1024 * 1024;
+        if (file.size > maxSize) {
+            throw new common_1.BadRequestException('File size must be less than 50MB');
+        }
+        const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+        return this.usersService.uploadVideo(user.id, file);
+    }
     async getNearby(req, query) {
         const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
         return this.usersService.findNearby(user.id, query.latitude, query.longitude, query.radiusKm, query.limit);
@@ -90,6 +105,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, update_location_dto_1.UpdateLocationDto]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "updateLocation", null);
+__decorate([
+    (0, common_1.Post)('me/video'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "uploadVideo", null);
 __decorate([
     (0, common_1.Get)('nearby'),
     __param(0, (0, common_1.Request)()),

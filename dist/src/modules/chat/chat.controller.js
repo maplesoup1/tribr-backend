@@ -39,6 +39,9 @@ let ChatController = class ChatController {
         await this.chatService.markAsRead(req.user.id, conversationId);
         return { success: true };
     }
+    async deleteMessage(req, conversationId, messageId) {
+        return this.chatService.deleteMessage(req.user.id, conversationId, messageId);
+    }
 };
 exports.ChatController = ChatController;
 __decorate([
@@ -82,6 +85,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "markAsRead", null);
+__decorate([
+    (0, common_1.Delete)('conversations/:cid/messages/:mid'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Param)('cid')),
+    __param(2, (0, common_1.Param)('mid')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "deleteMessage", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),
     (0, common_1.Controller)('chat'),

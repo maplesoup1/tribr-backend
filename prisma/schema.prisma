@@ -98,6 +98,19 @@ enum ActivityParticipantRole {
   guest
 }
 
+// Travel Wallet document types
+enum DocumentType {
+  passport
+  drivers_license
+  national_id
+  visa
+  work_permit
+  travel_insurance
+  health_insurance
+  vaccination_record
+  other
+}
+
 // =======================================================
 //  1. CORE USER & IDENTITY
 // =======================================================
@@ -135,6 +148,8 @@ model User {
   badges                UserBadge[]
   createdActivities     Activity[]
   activityParticipants  ActivityParticipant[]
+  walletDocuments       WalletDocument[]
+  languages             UserLanguage[]
 
   @@index([email])
   @@index([phone])
@@ -176,9 +191,41 @@ model Profile {
   travelStyles      String[]    @default([])
   bio               String?
 
+  // Username (unique handle for profile)
+  username          String?     @unique
+
+  // Social links
+  instagramHandle   String?
+  tiktokHandle      String?
+  youtubeUrl        String?
+
+  // Video introduction
+  videoIntroUrl     String?
+
   user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("profiles")
+}
+
+model UserLanguage {
+  id        String                @id @default(uuid())
+  userId    String
+  language  String
+  level     LanguageProficiency
+  createdAt DateTime              @default(now())
+
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, language])
+  @@index([userId])
+  @@map("user_languages")
+}
+
+enum LanguageProficiency {
+  native
+  fluent
+  conversational
+  basic
 }
 
 // =======================================================
@@ -468,4 +515,37 @@ model ActivityParticipant {
   @@index([userId, status])
   @@index([activityId])
   @@map("activity_participants")
+}
+
+// =======================================================
+//  10. TRAVEL WALLET
+// =======================================================
+
+model WalletDocument {
+  id              String         @id @default(uuid())
+  userId          String
+  documentType    DocumentType
+
+  // Basic info
+  title           String         // "US Passport", "Thailand Tourist Visa"
+  subtitle        String?        // "Expires Mar 15, 2028", "Valid until Aug 2024"
+
+  // Expiration tracking
+  expirationDate  DateTime?      @db.Date
+
+  // Document details (flexible JSON storage)
+  metadata        Json?          @db.JsonB
+
+  // File storage
+  documentUrl     String?        // Supabase Storage URL
+
+  // Timestamps
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, documentType])
+  @@index([userId, expirationDate])
+  @@map("wallet_documents")
 }

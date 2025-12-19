@@ -1,3 +1,13 @@
+export declare enum LanguageLevel {
+    native = "native",
+    fluent = "fluent",
+    conversational = "conversational",
+    basic = "basic"
+}
+export declare class LanguageDto {
+    language: string;
+    level: LanguageLevel;
+}
 export declare class UpdateUserDto {
     fullName?: string;
     email?: string;
@@ -8,4 +18,9 @@ export declare class UpdateUserDto {
     bio?: string;
     city?: string;
     country?: string;
+    languages?: LanguageDto[];
+    username?: string;
+    instagramHandle?: string;
+    tiktokHandle?: string;
+    youtubeUrl?: string;
 }

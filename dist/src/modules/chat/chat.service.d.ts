@@ -72,5 +72,8 @@ export declare class ChatService {
         createdAt: Date;
         updatedAt: Date;
     }>;
+    deleteMessage(userId: string, conversationId: string, messageId: string): Promise<{
+        message: string;
+    }>;
     private ensureParticipant;
 }

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Param,
   Query,
@@ -55,5 +56,14 @@ export class ChatController {
   async markAsRead(@Req() req: any, @Param('id') conversationId: string) {
     await this.chatService.markAsRead(req.user.id, conversationId);
     return { success: true };
+  }
+
+  @Delete('conversations/:cid/messages/:mid')
+  async deleteMessage(
+    @Req() req: any,
+    @Param('cid') conversationId: string,
+    @Param('mid') messageId: string,
+  ) {
+    return this.chatService.deleteMessage(req.user.id, conversationId, messageId);
   }
 }

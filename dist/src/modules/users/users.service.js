@@ -47,7 +47,7 @@ let UsersService = class UsersService {
     }
     async update(id, updateUserDto) {
         await this.findById(id);
-        const { fullName, photoUrl, archetypes, interests, travelStyles, bio, city, country, ...userFields } = updateUserDto;
+        const { fullName, photoUrl, archetypes, interests, travelStyles, bio, city, country, languages, username, instagramHandle, tiktokHandle, youtubeUrl, ...userFields } = updateUserDto;
         const hasProfileUpdates = fullName !== undefined ||
             photoUrl !== undefined ||
             archetypes !== undefined ||
@@ -55,29 +55,52 @@ let UsersService = class UsersService {
             travelStyles !== undefined ||
             bio !== undefined ||
             city !== undefined ||
-            country !== undefined;
-        return this.prisma.user.update({
-            where: { id },
-            data: {
-                ...userFields,
-                ...(hasProfileUpdates && {
-                    profile: {
-                        update: {
-                            ...(fullName !== undefined && { fullName }),
-                            ...(photoUrl !== undefined && { avatarUrl: photoUrl }),
-                            ...(archetypes !== undefined && { archetypes }),
-                            ...(interests !== undefined && { interests }),
-                            ...(travelStyles !== undefined && { travelStyles }),
-                            ...(bio !== undefined && { bio }),
-                            ...(city !== undefined && { city }),
-                            ...(country !== undefined && { country }),
+            country !== undefined ||
+            username !== undefined ||
+            instagramHandle !== undefined ||
+            tiktokHandle !== undefined ||
+            youtubeUrl !== undefined;
+        return this.prisma.$transaction(async (tx) => {
+            await tx.user.update({
+                where: { id },
+                data: {
+                    ...userFields,
+                    ...(hasProfileUpdates && {
+                        profile: {
+                            update: {
+                                ...(fullName !== undefined && { fullName }),
+                                ...(photoUrl !== undefined && { avatarUrl: photoUrl }),
+                                ...(archetypes !== undefined && { archetypes }),
+                                ...(interests !== undefined && { interests }),
+                                ...(travelStyles !== undefined && { travelStyles }),
+                                ...(bio !== undefined && { bio }),
+                                ...(city !== undefined && { city }),
+                                ...(country !== undefined && { country }),
+                                ...(username !== undefined && { username }),
+                                ...(instagramHandle !== undefined && { instagramHandle }),
+                                ...(tiktokHandle !== undefined && { tiktokHandle }),
+                                ...(youtubeUrl !== undefined && { youtubeUrl }),
+                            },
                         },
-                    },
-                }),
-            },
-            include: {
-                profile: true,
-            },
+                    }),
+                },
+            });
+            if (languages !== undefined) {
+                await tx.userLanguage.deleteMany({ where: { userId: id } });
+                if (languages.length) {
+                    await tx.userLanguage.createMany({
+                        data: languages.map((lang) => ({
+                            userId: id,
+                            language: lang.language,
+                            level: lang.level,
+                        })),
+                    });
+                }
+            }
+            return tx.user.findUniqueOrThrow({
+                where: { id },
+                include: { profile: true, languages: true },
+            });
         });
     }
     async createUser(data) {
@@ -253,6 +276,7 @@ let UsersService = class UsersService {
                 where: { id: userId },
                 include: {
                     profile: true,
+                    languages: true,
                     badges: {
                         include: {
                             badge: true,
@@ -356,6 +380,40 @@ let UsersService = class UsersService {
       LIMIT ${safeLimit}
     `;
         return results;
+    }
+    async uploadVideo(userId, file) {
+        const supabase = this.supabaseService.getClient();
+        const bucketName = 'profile-videos';
+        const fileExt = file.originalname.split('.').pop() || 'mp4';
+        const fileName = `${userId}/${Date.now()}.${fileExt}`;
+        const { error } = await supabase.storage
+            .from(bucketName)
+            .upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+            upsert: true,
+        });
+        if (error) {
+            console.error('Storage upload error:', error);
+            throw new common_1.InternalServerErrorException('Failed to upload video');
+        }
+        const { data: urlData } = supabase.storage
+            .from(bucketName)
+            .getPublicUrl(fileName);
+        const videoIntroUrl = urlData.publicUrl;
+        await this.prisma.profile.upsert({
+            where: { userId },
+            update: { videoIntroUrl },
+            create: { userId, videoIntroUrl },
+        });
+        const updatedUser = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: { profile: true },
+        });
+        return {
+            message: 'Video uploaded successfully',
+            videoIntroUrl,
+            user: updatedUser,
+        };
     }
     calculateTrustScore(user, connections, trips) {
         let score = 0;

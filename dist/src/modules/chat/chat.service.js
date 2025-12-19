@@ -104,6 +104,29 @@ let ChatService = class ChatService {
             },
         });
     }
+    async deleteMessage(userId, conversationId, messageId) {
+        await this.ensureParticipant(userId, conversationId);
+        const message = await this.prisma.message.findUnique({
+            where: { id: messageId },
+        });
+        if (!message) {
+            throw new common_1.NotFoundException('Message not found');
+        }
+        if (message.conversationId !== conversationId) {
+            throw new common_1.BadRequestException('Message does not belong to this conversation');
+        }
+        if (message.senderId !== userId) {
+            throw new common_1.ForbiddenException('You can only delete your own messages');
+        }
+        await this.prisma.message.update({
+            where: { id: messageId },
+            data: {
+                deletedAt: new Date(),
+                deletedBy: userId,
+            },
+        });
+        return { message: 'Message deleted' };
+    }
     async ensureParticipant(userId, conversationId) {
         const convo = await this.prisma.conversation.findUnique({
             where: { id: conversationId },

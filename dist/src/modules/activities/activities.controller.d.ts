@@ -97,6 +97,11 @@ export declare class ActivitiesController {
                 interests: string[];
                 travelStyles: string[];
                 bio: string | null;
+                username: string | null;
+                instagramHandle: string | null;
+                tiktokHandle: string | null;
+                youtubeUrl: string | null;
+                videoIntroUrl: string | null;
             } | null;
         } & {
             id: string;

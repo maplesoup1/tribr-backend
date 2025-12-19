@@ -76,4 +76,7 @@ export declare class ChatController {
     markAsRead(req: any, conversationId: string): Promise<{
         success: boolean;
     }>;
+    deleteMessage(req: any, conversationId: string, messageId: string): Promise<{
+        message: string;
+    }>;
 }

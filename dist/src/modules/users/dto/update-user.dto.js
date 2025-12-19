@@ -9,9 +9,32 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpdateUserDto = void 0;
+exports.UpdateUserDto = exports.LanguageDto = exports.LanguageLevel = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+const class_validator_2 = require("class-validator");
+var LanguageLevel;
+(function (LanguageLevel) {
+    LanguageLevel["native"] = "native";
+    LanguageLevel["fluent"] = "fluent";
+    LanguageLevel["conversational"] = "conversational";
+    LanguageLevel["basic"] = "basic";
+})(LanguageLevel || (exports.LanguageLevel = LanguageLevel = {}));
+class LanguageDto {
+    language;
+    level;
+}
+exports.LanguageDto = LanguageDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(50),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
+    __metadata("design:type", String)
+], LanguageDto.prototype, "language", void 0);
+__decorate([
+    (0, class_validator_2.IsEnum)(LanguageLevel),
+    __metadata("design:type", String)
+], LanguageDto.prototype, "level", void 0);
 class UpdateUserDto {
     fullName;
     email;
@@ -22,6 +45,11 @@ class UpdateUserDto {
     bio;
     city;
     country;
+    languages;
+    username;
+    instagramHandle;
+    tiktokHandle;
+    youtubeUrl;
 }
 exports.UpdateUserDto = UpdateUserDto;
 __decorate([
@@ -108,4 +136,43 @@ __decorate([
     (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "country", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ArrayMaxSize)(20),
+    (0, class_validator_2.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => LanguageDto),
+    __metadata("design:type", Array)
+], UpdateUserDto.prototype, "languages", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(30),
+    (0, class_validator_1.Matches)(/^[a-zA-Z0-9_]+$/, {
+        message: 'Username can only contain letters, numbers, and underscores',
+    }),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim().toLowerCase()),
+    __metadata("design:type", String)
+], UpdateUserDto.prototype, "username", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(50),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim().replace(/^@/, '')),
+    __metadata("design:type", String)
+], UpdateUserDto.prototype, "instagramHandle", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(50),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim().replace(/^@/, '')),
+    __metadata("design:type", String)
+], UpdateUserDto.prototype, "tiktokHandle", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(255),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
+    __metadata("design:type", String)
+], UpdateUserDto.prototype, "youtubeUrl", void 0);
 //# sourceMappingURL=update-user.dto.js.map

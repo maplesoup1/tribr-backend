@@ -79,6 +79,32 @@ export class UsersController {
     );
   }
 
+  @Post('me/video')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadVideo(
+    @Request() req,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    // Validate file type (video formats)
+    const allowedMimeTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException('Only MP4, MOV, and WebM videos are allowed');
+    }
+
+    // Validate file size (max 50MB)
+    const maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new BadRequestException('File size must be less than 50MB');
+    }
+
+    const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+    return this.usersService.uploadVideo(user.id, file);
+  }
+
   @Get('nearby')
   async getNearby(@Request() req, @Query() query: NearbyQueryDto) {
     const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);

@@ -48,7 +48,19 @@ export declare class UsersService {
             interests: string[];
             travelStyles: string[];
             bio: string | null;
+            username: string | null;
+            instagramHandle: string | null;
+            tiktokHandle: string | null;
+            youtubeUrl: string | null;
+            videoIntroUrl: string | null;
         } | null;
+        languages: {
+            id: string;
+            userId: string;
+            language: string;
+            level: import(".prisma/client").$Enums.LanguageProficiency;
+            createdAt: Date;
+        }[];
     } & {
         id: string;
         phone: string | null;
@@ -78,6 +90,11 @@ export declare class UsersService {
             interests: string[];
             travelStyles: string[];
             bio: string | null;
+            username: string | null;
+            instagramHandle: string | null;
+            tiktokHandle: string | null;
+            youtubeUrl: string | null;
+            videoIntroUrl: string | null;
         } | null;
     } & {
         id: string;
@@ -109,6 +126,11 @@ export declare class UsersService {
             interests: string[];
             travelStyles: string[];
             bio: string | null;
+            username: string | null;
+            instagramHandle: string | null;
+            tiktokHandle: string | null;
+            youtubeUrl: string | null;
+            videoIntroUrl: string | null;
         } | null;
     } & {
         id: string;
@@ -134,6 +156,11 @@ export declare class UsersService {
             interests: string[];
             travelStyles: string[];
             bio: string | null;
+            username: string | null;
+            instagramHandle: string | null;
+            tiktokHandle: string | null;
+            youtubeUrl: string | null;
+            videoIntroUrl: string | null;
         } | null;
     } & {
         id: string;
@@ -163,6 +190,11 @@ export declare class UsersService {
                 interests: string[];
                 travelStyles: string[];
                 bio: string | null;
+                username: string | null;
+                instagramHandle: string | null;
+                tiktokHandle: string | null;
+                youtubeUrl: string | null;
+                videoIntroUrl: string | null;
             } | null;
         } & {
             id: string;
@@ -201,7 +233,19 @@ export declare class UsersService {
             interests: string[];
             travelStyles: string[];
             bio: string | null;
+            username: string | null;
+            instagramHandle: string | null;
+            tiktokHandle: string | null;
+            youtubeUrl: string | null;
+            videoIntroUrl: string | null;
         } | null;
+        languages: {
+            id: string;
+            userId: string;
+            language: string;
+            level: import(".prisma/client").$Enums.LanguageProficiency;
+            createdAt: Date;
+        }[];
         id: string;
         phone: string | null;
         countryCode: string;
@@ -224,5 +268,39 @@ export declare class UsersService {
         distance: number;
         updatedAt: Date;
     }[]>;
+    uploadVideo(userId: string, file: Express.Multer.File): Promise<{
+        message: string;
+        videoIntroUrl: string;
+        user: ({
+            profile: {
+                userId: string;
+                fullName: string | null;
+                avatarUrl: string | null;
+                visibility: import(".prisma/client").$Enums.Visibility;
+                verificationLevel: number;
+                gender: string | null;
+                birthDate: Date | null;
+                city: string | null;
+                country: string | null;
+                archetypes: string[];
+                interests: string[];
+                travelStyles: string[];
+                bio: string | null;
+                username: string | null;
+                instagramHandle: string | null;
+                tiktokHandle: string | null;
+                youtubeUrl: string | null;
+                videoIntroUrl: string | null;
+            } | null;
+        } & {
+            id: string;
+            phone: string | null;
+            countryCode: string;
+            email: string;
+            onboardingComplete: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+        }) | null;
+    }>;
     private calculateTrustScore;
 }

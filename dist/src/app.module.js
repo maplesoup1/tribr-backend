@@ -25,6 +25,7 @@ const journeys_module_1 = require("./modules/journeys/journeys.module");
 const chat_module_1 = require("./modules/chat/chat.module");
 const badges_module_1 = require("./modules/badges/badges.module");
 const activities_module_1 = require("./modules/activities/activities.module");
+const travel_wallet_module_1 = require("./modules/travel-wallet/travel-wallet.module");
 const config_2 = __importDefault(require("./config/config"));
 let AppModule = class AppModule {
 };
@@ -51,6 +52,7 @@ exports.AppModule = AppModule = __decorate([
             chat_module_1.ChatModule,
             badges_module_1.BadgesModule,
             activities_module_1.ActivitiesModule,
+            travel_wallet_module_1.TravelWalletModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

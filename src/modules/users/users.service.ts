@@ -65,6 +65,11 @@ export class UsersService {
       bio,
       city,
       country,
+      languages,
+      username,
+      instagramHandle,
+      tiktokHandle,
+      youtubeUrl,
       ...userFields
     } = updateUserDto;
 
@@ -77,31 +82,57 @@ export class UsersService {
       travelStyles !== undefined ||
       bio !== undefined ||
       city !== undefined ||
-      country !== undefined;
+      country !== undefined ||
+      username !== undefined ||
+      instagramHandle !== undefined ||
+      tiktokHandle !== undefined ||
+      youtubeUrl !== undefined;
 
-    return this.prisma.user.update({
-      where: { id },
-      data: {
-        ...userFields,
-        // Only update profile if there are profile fields
-        ...(hasProfileUpdates && {
-          profile: {
-            update: {
-              ...(fullName !== undefined && { fullName }),
-              ...(photoUrl !== undefined && { avatarUrl: photoUrl }),
-              ...(archetypes !== undefined && { archetypes }),
-              ...(interests !== undefined && { interests }),
-              ...(travelStyles !== undefined && { travelStyles }),
-              ...(bio !== undefined && { bio }),
-              ...(city !== undefined && { city }),
-              ...(country !== undefined && { country }),
+    return this.prisma.$transaction(async (tx) => {
+      // Update user + profile
+      await tx.user.update({
+        where: { id },
+        data: {
+          ...userFields,
+          ...(hasProfileUpdates && {
+            profile: {
+              update: {
+                ...(fullName !== undefined && { fullName }),
+                ...(photoUrl !== undefined && { avatarUrl: photoUrl }),
+                ...(archetypes !== undefined && { archetypes }),
+                ...(interests !== undefined && { interests }),
+                ...(travelStyles !== undefined && { travelStyles }),
+                ...(bio !== undefined && { bio }),
+                ...(city !== undefined && { city }),
+                ...(country !== undefined && { country }),
+                ...(username !== undefined && { username }),
+                ...(instagramHandle !== undefined && { instagramHandle }),
+                ...(tiktokHandle !== undefined && { tiktokHandle }),
+                ...(youtubeUrl !== undefined && { youtubeUrl }),
+              },
             },
-          },
-        }),
-      },
-      include: {
-        profile: true,
-      },
+          }),
+        },
+      });
+
+      // Upsert languages (replace set)
+      if (languages !== undefined) {
+        await tx.userLanguage.deleteMany({ where: { userId: id } });
+        if (languages.length) {
+          await tx.userLanguage.createMany({
+            data: languages.map((lang) => ({
+              userId: id,
+              language: lang.language,
+              level: lang.level,
+            })),
+          });
+        }
+      }
+
+      return tx.user.findUniqueOrThrow({
+        where: { id },
+        include: { profile: true, languages: true },
+      });
     });
   }
 
@@ -362,6 +393,7 @@ export class UsersService {
         where: { id: userId },
         include: {
           profile: true,
+          languages: true,
           badges: {
             include: {
               badge: true,
@@ -507,6 +539,57 @@ export class UsersService {
     `;
 
     return results;
+  }
+
+  /**
+   * Upload video introduction to Supabase Storage and update user profile
+   */
+  async uploadVideo(userId: string, file: Express.Multer.File) {
+    const supabase = this.supabaseService.getClient();
+    const bucketName = 'profile-videos';
+
+    // Generate unique filename
+    const fileExt = file.originalname.split('.').pop() || 'mp4';
+    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+
+    // Upload to Supabase Storage
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true,
+      });
+
+    if (error) {
+      console.error('Storage upload error:', error);
+      throw new InternalServerErrorException('Failed to upload video');
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(fileName);
+
+    const videoIntroUrl = urlData.publicUrl;
+
+    // Upsert profile with video URL
+    await this.prisma.profile.upsert({
+      where: { userId },
+      update: { videoIntroUrl },
+      create: { userId, videoIntroUrl },
+    });
+
+    // Fetch updated user with profile
+    const updatedUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: true },
+    });
+
+    return {
+      message: 'Video uploaded successfully',
+      videoIntroUrl,
+      user: updatedUser,
+    };
   }
 
   /**

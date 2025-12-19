@@ -23,13 +23,6 @@ let AuthService = class AuthService {
     async signUpWithOtp(signUpDto) {
         const { email, fullName } = signUpDto;
         try {
-            const { data: existingUsers } = await this.supabaseService
-                .getClient()
-                .auth.admin.listUsers();
-            const userExists = existingUsers?.users?.some((user) => user.email?.toLowerCase() === email.toLowerCase());
-            if (userExists) {
-                throw new common_1.ConflictException('Email already registered');
-            }
             const { data, error } = await this.supabaseService
                 .getAnonClient()
                 .auth.signInWithOtp({

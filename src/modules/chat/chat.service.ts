@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -102,6 +102,40 @@ export class ChatService {
         participants: true,
       },
     });
+  }
+
+  async deleteMessage(userId: string, conversationId: string, messageId: string) {
+    // 1. Ensure user is participant of conversation
+    await this.ensureParticipant(userId, conversationId);
+
+    // 2. Find message and validate it belongs to this conversation
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    if (message.conversationId !== conversationId) {
+      throw new BadRequestException('Message does not belong to this conversation');
+    }
+
+    // 3. Only allow sender to delete their own message
+    if (message.senderId !== userId) {
+      throw new ForbiddenException('You can only delete your own messages');
+    }
+
+    // 4. Soft delete: set deletedAt and deletedBy
+    await this.prisma.message.update({
+      where: { id: messageId },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: userId,
+      },
+    });
+
+    return { message: 'Message deleted' };
   }
 
   private async ensureParticipant(userId: string, conversationId: string) {

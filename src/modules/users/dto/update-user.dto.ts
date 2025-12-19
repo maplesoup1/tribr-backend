@@ -8,7 +8,25 @@ import {
   IsUrl,
   Matches,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { IsEnum, ValidateNested } from 'class-validator';
+
+export enum LanguageLevel {
+  native = 'native',
+  fluent = 'fluent',
+  conversational = 'conversational',
+  basic = 'basic',
+}
+
+export class LanguageDto {
+  @IsString()
+  @MaxLength(50)
+  @Transform(({ value }) => value?.trim())
+  language!: string;
+
+  @IsEnum(LanguageLevel)
+  level!: LanguageLevel;
+}
 
 export class UpdateUserDto {
   @IsOptional()
@@ -88,4 +106,40 @@ export class UpdateUserDto {
   @MaxLength(100)
   @Transform(({ value }) => value?.trim())
   country?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => LanguageDto)
+  languages?: LanguageDto[];
+
+  // Username (unique handle)
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  @Matches(/^[a-zA-Z0-9_]+$/, {
+    message: 'Username can only contain letters, numbers, and underscores',
+  })
+  @Transform(({ value }) => value?.trim().toLowerCase())
+  username?: string;
+
+  // Social links
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  @Transform(({ value }) => value?.trim().replace(/^@/, ''))
+  instagramHandle?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  @Transform(({ value }) => value?.trim().replace(/^@/, ''))
+  tiktokHandle?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  @Transform(({ value }) => value?.trim())
+  youtubeUrl?: string;
 }

@@ -22,19 +22,6 @@ export class AuthService {
     const { email, fullName } = signUpDto;
 
     try {
-      // Check if user already exists
-      const { data: existingUsers } = await this.supabaseService
-        .getClient()
-        .auth.admin.listUsers();
-
-      const userExists = existingUsers?.users?.some(
-        (user: any) => user.email?.toLowerCase() === email.toLowerCase(),
-      );
-
-      if (userExists) {
-        throw new ConflictException('Email already registered');
-      }
-
       // Email-only OTP flow: single call to signInWithOtp, create user if needed
       // Use anon client for user-facing auth operations
       const { data, error }: AuthResponse = await this.supabaseService
