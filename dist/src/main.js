@@ -37,7 +37,7 @@ async function bootstrap() {
             enableImplicitConversion: true,
         },
     }));
-    app.useGlobalFilters(new prisma_exception_filter_1.PrismaExceptionFilter());
+    app.useGlobalFilters(new prisma_exception_filter_1.PrismaClientExceptionFilter());
     await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

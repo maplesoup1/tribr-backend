@@ -63,7 +63,7 @@ export class UpdateUserDto {
   @MaxLength(50, { each: true })
   @Matches(/^[a-zA-Z0-9\s-]+$/, {
     each: true,
-    message: 'Invalid archetype format',
+    message: 'Archetypes can only contain letters, numbers, spaces and hyphens',
   })
   archetypes?: string[];
 
@@ -74,7 +74,7 @@ export class UpdateUserDto {
   @MaxLength(50, { each: true })
   @Matches(/^[a-zA-Z0-9\s-]+$/, {
     each: true,
-    message: 'Invalid interest format',
+    message: 'Interests can only contain letters, numbers, spaces and hyphens',
   })
   interests?: string[];
 
@@ -85,25 +85,25 @@ export class UpdateUserDto {
   @MaxLength(50, { each: true })
   @Matches(/^[a-zA-Z0-9\s-]+$/, {
     each: true,
-    message: 'Invalid travel style format',
+    message: 'Travel styles can only contain letters, numbers, spaces and hyphens',
   })
   travelStyles?: string[];
 
   @IsOptional()
   @IsString()
-  @MaxLength(500)
+  @MaxLength(500, { message: 'Bio is too long (max 500 characters)' })
   @Transform(({ value }) => value?.trim())
   bio?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(100, { message: 'City is too long (max 100 characters)' })
   @Transform(({ value }) => value?.trim())
   city?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(100, { message: 'Country is too long (max 100 characters)' })
   @Transform(({ value }) => value?.trim())
   country?: string;
 
@@ -117,7 +117,7 @@ export class UpdateUserDto {
   // Username (unique handle)
   @IsOptional()
   @IsString()
-  @MaxLength(30)
+  @MaxLength(30, { message: 'Username is too long (max 30 characters)' })
   @Matches(/^[a-zA-Z0-9_]+$/, {
     message: 'Username can only contain letters, numbers, and underscores',
   })

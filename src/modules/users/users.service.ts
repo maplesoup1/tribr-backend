@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SupabaseService } from '../../supabase/supabase.service';
@@ -88,52 +89,71 @@ export class UsersService {
       tiktokHandle !== undefined ||
       youtubeUrl !== undefined;
 
-    return this.prisma.$transaction(async (tx) => {
-      // Update user + profile
-      await tx.user.update({
-        where: { id },
-        data: {
-          ...userFields,
-          ...(hasProfileUpdates && {
-            profile: {
-              update: {
-                ...(fullName !== undefined && { fullName }),
-                ...(photoUrl !== undefined && { avatarUrl: photoUrl }),
-                ...(archetypes !== undefined && { archetypes }),
-                ...(interests !== undefined && { interests }),
-                ...(travelStyles !== undefined && { travelStyles }),
-                ...(bio !== undefined && { bio }),
-                ...(city !== undefined && { city }),
-                ...(country !== undefined && { country }),
-                ...(username !== undefined && { username }),
-                ...(instagramHandle !== undefined && { instagramHandle }),
-                ...(tiktokHandle !== undefined && { tiktokHandle }),
-                ...(youtubeUrl !== undefined && { youtubeUrl }),
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        // Update user + profile
+        await tx.user.update({
+          where: { id },
+          data: {
+            ...userFields,
+            ...(hasProfileUpdates && {
+              profile: {
+                update: {
+                  ...(fullName !== undefined && { fullName }),
+                  ...(photoUrl !== undefined && { avatarUrl: photoUrl }),
+                  ...(archetypes !== undefined && { archetypes }),
+                  ...(interests !== undefined && { interests }),
+                  ...(travelStyles !== undefined && { travelStyles }),
+                  ...(bio !== undefined && { bio }),
+                  ...(city !== undefined && { city }),
+                  ...(country !== undefined && { country }),
+                  ...(username !== undefined && { username }),
+                  ...(instagramHandle !== undefined && { instagramHandle }),
+                  ...(tiktokHandle !== undefined && { tiktokHandle }),
+                  ...(youtubeUrl !== undefined && { youtubeUrl }),
+                },
               },
-            },
-          }),
-        },
-      });
+            }),
+          },
+        });
 
-      // Upsert languages (replace set)
-      if (languages !== undefined) {
-        await tx.userLanguage.deleteMany({ where: { userId: id } });
-        if (languages.length) {
-          await tx.userLanguage.createMany({
-            data: languages.map((lang) => ({
-              userId: id,
-              language: lang.language,
-              level: lang.level,
-            })),
-          });
+        // Upsert languages (replace set)
+        if (languages !== undefined) {
+          await tx.userLanguage.deleteMany({ where: { userId: id } });
+          if (languages.length) {
+            await tx.userLanguage.createMany({
+              data: languages.map((lang) => ({
+                userId: id,
+                language: lang.language,
+                level: lang.level,
+              })),
+            });
+          }
         }
-      }
 
-      return tx.user.findUniqueOrThrow({
-        where: { id },
-        include: { profile: true, languages: true },
+        return tx.user.findUniqueOrThrow({
+          where: { id },
+          include: { profile: true, languages: true, badges: { include: { badge: true } } },
+        });
       });
-    });
+    } catch (err: any) {
+      // Unique constraint conflict on profile (username etc.)
+      if (err?.code === 'P2002') {
+        const target = (err.meta as any)?.target as string[] | undefined;
+        const field = target?.[0];
+        if (field === 'username') {
+          throw new ConflictException('Username is already taken');
+        }
+        if (field === 'email') {
+          throw new ConflictException('Email is already in use');
+        }
+        if (field === 'phone') {
+          throw new ConflictException('Phone number is already in use');
+        }
+        throw new ConflictException('Resource already exists');
+      }
+      throw err;
+    }
   }
 
   async createUser(data: {

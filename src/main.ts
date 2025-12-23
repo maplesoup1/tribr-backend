@@ -8,7 +8,7 @@ if (!process.env.PRISMA_CLIENT_ENGINE_TYPE) {
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
+import { PrismaClientExceptionFilter } from './common/filters/prisma-exception.filter';
 import helmet from 'helmet';
 
 async function bootstrap() {
@@ -55,7 +55,7 @@ async function bootstrap() {
   );
 
   // Enable global exception filter for Prisma errors
-  app.useGlobalFilters(new PrismaExceptionFilter());
+  app.useGlobalFilters(new PrismaClientExceptionFilter());
 
   await app.listen(process.env.PORT ?? 3000);
 }

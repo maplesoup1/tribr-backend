@@ -60,48 +60,67 @@ let UsersService = class UsersService {
             instagramHandle !== undefined ||
             tiktokHandle !== undefined ||
             youtubeUrl !== undefined;
-        return this.prisma.$transaction(async (tx) => {
-            await tx.user.update({
-                where: { id },
-                data: {
-                    ...userFields,
-                    ...(hasProfileUpdates && {
-                        profile: {
-                            update: {
-                                ...(fullName !== undefined && { fullName }),
-                                ...(photoUrl !== undefined && { avatarUrl: photoUrl }),
-                                ...(archetypes !== undefined && { archetypes }),
-                                ...(interests !== undefined && { interests }),
-                                ...(travelStyles !== undefined && { travelStyles }),
-                                ...(bio !== undefined && { bio }),
-                                ...(city !== undefined && { city }),
-                                ...(country !== undefined && { country }),
-                                ...(username !== undefined && { username }),
-                                ...(instagramHandle !== undefined && { instagramHandle }),
-                                ...(tiktokHandle !== undefined && { tiktokHandle }),
-                                ...(youtubeUrl !== undefined && { youtubeUrl }),
+        try {
+            return await this.prisma.$transaction(async (tx) => {
+                await tx.user.update({
+                    where: { id },
+                    data: {
+                        ...userFields,
+                        ...(hasProfileUpdates && {
+                            profile: {
+                                update: {
+                                    ...(fullName !== undefined && { fullName }),
+                                    ...(photoUrl !== undefined && { avatarUrl: photoUrl }),
+                                    ...(archetypes !== undefined && { archetypes }),
+                                    ...(interests !== undefined && { interests }),
+                                    ...(travelStyles !== undefined && { travelStyles }),
+                                    ...(bio !== undefined && { bio }),
+                                    ...(city !== undefined && { city }),
+                                    ...(country !== undefined && { country }),
+                                    ...(username !== undefined && { username }),
+                                    ...(instagramHandle !== undefined && { instagramHandle }),
+                                    ...(tiktokHandle !== undefined && { tiktokHandle }),
+                                    ...(youtubeUrl !== undefined && { youtubeUrl }),
+                                },
                             },
-                        },
-                    }),
-                },
-            });
-            if (languages !== undefined) {
-                await tx.userLanguage.deleteMany({ where: { userId: id } });
-                if (languages.length) {
-                    await tx.userLanguage.createMany({
-                        data: languages.map((lang) => ({
-                            userId: id,
-                            language: lang.language,
-                            level: lang.level,
-                        })),
-                    });
+                        }),
+                    },
+                });
+                if (languages !== undefined) {
+                    await tx.userLanguage.deleteMany({ where: { userId: id } });
+                    if (languages.length) {
+                        await tx.userLanguage.createMany({
+                            data: languages.map((lang) => ({
+                                userId: id,
+                                language: lang.language,
+                                level: lang.level,
+                            })),
+                        });
+                    }
                 }
-            }
-            return tx.user.findUniqueOrThrow({
-                where: { id },
-                include: { profile: true, languages: true },
+                return tx.user.findUniqueOrThrow({
+                    where: { id },
+                    include: { profile: true, languages: true, badges: { include: { badge: true } } },
+                });
             });
-        });
+        }
+        catch (err) {
+            if (err?.code === 'P2002') {
+                const target = err.meta?.target;
+                const field = target?.[0];
+                if (field === 'username') {
+                    throw new common_1.ConflictException('Username is already taken');
+                }
+                if (field === 'email') {
+                    throw new common_1.ConflictException('Email is already in use');
+                }
+                if (field === 'phone') {
+                    throw new common_1.ConflictException('Phone number is already in use');
+                }
+                throw new common_1.ConflictException('Resource already exists');
+            }
+            throw err;
+        }
     }
     async createUser(data) {
         const phone = this.normalizePhone(data.phone);

@@ -74,6 +74,24 @@ export declare class UsersController {
             youtubeUrl: string | null;
             videoIntroUrl: string | null;
         } | null;
+        badges: ({
+            badge: {
+                id: string;
+                code: string;
+                name: string;
+                description: string | null;
+                icon: string | null;
+                category: import(".prisma/client").$Enums.BadgeCategory;
+                rarity: import(".prisma/client").$Enums.BadgeRarity;
+                requirement: string | null;
+                createdAt: Date;
+            };
+        } & {
+            userId: string;
+            badgeId: string;
+            earnedAt: Date;
+            progress: number;
+        })[];
         languages: {
             id: string;
             userId: string;

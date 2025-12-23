@@ -87,7 +87,7 @@ __decorate([
     (0, class_validator_1.MaxLength)(50, { each: true }),
     (0, class_validator_1.Matches)(/^[a-zA-Z0-9\s-]+$/, {
         each: true,
-        message: 'Invalid archetype format',
+        message: 'Archetypes can only contain letters, numbers, spaces and hyphens',
     }),
     __metadata("design:type", Array)
 ], UpdateUserDto.prototype, "archetypes", void 0);
@@ -99,7 +99,7 @@ __decorate([
     (0, class_validator_1.MaxLength)(50, { each: true }),
     (0, class_validator_1.Matches)(/^[a-zA-Z0-9\s-]+$/, {
         each: true,
-        message: 'Invalid interest format',
+        message: 'Interests can only contain letters, numbers, spaces and hyphens',
     }),
     __metadata("design:type", Array)
 ], UpdateUserDto.prototype, "interests", void 0);
@@ -111,28 +111,28 @@ __decorate([
     (0, class_validator_1.MaxLength)(50, { each: true }),
     (0, class_validator_1.Matches)(/^[a-zA-Z0-9\s-]+$/, {
         each: true,
-        message: 'Invalid travel style format',
+        message: 'Travel styles can only contain letters, numbers, spaces and hyphens',
     }),
     __metadata("design:type", Array)
 ], UpdateUserDto.prototype, "travelStyles", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MaxLength)(500),
+    (0, class_validator_1.MaxLength)(500, { message: 'Bio is too long (max 500 characters)' }),
     (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "bio", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MaxLength)(100),
+    (0, class_validator_1.MaxLength)(100, { message: 'City is too long (max 100 characters)' }),
     (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "city", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MaxLength)(100),
+    (0, class_validator_1.MaxLength)(100, { message: 'Country is too long (max 100 characters)' }),
     (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "country", void 0);
@@ -147,7 +147,7 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MaxLength)(30),
+    (0, class_validator_1.MaxLength)(30, { message: 'Username is too long (max 30 characters)' }),
     (0, class_validator_1.Matches)(/^[a-zA-Z0-9_]+$/, {
         message: 'Username can only contain letters, numbers, and underscores',
     }),

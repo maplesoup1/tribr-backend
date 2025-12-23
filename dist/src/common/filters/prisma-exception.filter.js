@@ -6,50 +6,67 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PrismaExceptionFilter = void 0;
+exports.PrismaClientExceptionFilter = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
-let PrismaExceptionFilter = class PrismaExceptionFilter {
+let PrismaClientExceptionFilter = class PrismaClientExceptionFilter {
     catch(exception, host) {
         const ctx = host.switchToHttp();
         const response = ctx.getResponse();
+        const timestamp = new Date().toISOString();
         let status = common_1.HttpStatus.BAD_REQUEST;
-        let message = 'Bad request';
+        let message = exception.message;
+        let error = 'Bad Request';
+        let errorCode;
         switch (exception.code) {
-            case 'P2002':
+            case 'P2002': {
                 status = common_1.HttpStatus.CONFLICT;
-                message = 'This record already exists';
+                error = 'Conflict';
+                const target = exception.meta?.target;
+                const field = target?.[0];
+                if (field) {
+                    message = `${field} is already taken`;
+                    errorCode = `CONFLICT_${field.toUpperCase()}`;
+                }
+                else {
+                    message = 'Resource already exists';
+                    errorCode = 'CONFLICT_UNIQUE';
+                }
                 break;
-            case 'P2025':
+            }
+            case 'P2025': {
                 status = common_1.HttpStatus.NOT_FOUND;
-                message = 'Record not found';
+                error = 'Not Found';
+                message = 'Resource not found';
+                errorCode = 'NOT_FOUND';
                 break;
-            case 'P2003':
+            }
+            case 'P2003': {
                 status = common_1.HttpStatus.BAD_REQUEST;
-                message = 'Invalid reference - related record does not exist';
+                error = 'Bad Request';
+                message = 'Invalid reference';
+                errorCode = 'INVALID_REFERENCE';
                 break;
-            case 'P2014':
+            }
+            default: {
                 status = common_1.HttpStatus.BAD_REQUEST;
-                message = 'Required relationship is missing';
+                error = 'Bad Request';
+                message = 'Request could not be processed';
+                errorCode = exception.code;
                 break;
-            case 'P2000':
-                status = common_1.HttpStatus.BAD_REQUEST;
-                message = 'Input value is too long';
-                break;
-            default:
-                status = common_1.HttpStatus.INTERNAL_SERVER_ERROR;
-                message = 'A database error occurred';
-                break;
+            }
         }
         response.status(status).json({
             statusCode: status,
+            error,
             message,
-            error: common_1.HttpStatus[status],
+            errorCode,
+            timestamp,
         });
     }
 };
-exports.PrismaExceptionFilter = PrismaExceptionFilter;
-exports.PrismaExceptionFilter = PrismaExceptionFilter = __decorate([
+exports.PrismaClientExceptionFilter = PrismaClientExceptionFilter;
+exports.PrismaClientExceptionFilter = PrismaClientExceptionFilter = __decorate([
     (0, common_1.Catch)(client_1.Prisma.PrismaClientKnownRequestError)
-], PrismaExceptionFilter);
+], PrismaClientExceptionFilter);
 //# sourceMappingURL=prisma-exception.filter.js.map

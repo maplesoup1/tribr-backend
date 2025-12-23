@@ -194,9 +194,13 @@ let ActivitiesService = class ActivitiesService {
             throw new common_1.NotFoundException('User not found');
         }
         if (activity.womenOnly) {
-            const gender = user.profile?.gender?.toLowerCase();
-            if (gender !== 'female' && gender !== 'woman') {
-                throw new common_1.ForbiddenException('This activity is for women only');
+            const userProfile = await this.prisma.profile.findUnique({
+                where: { userId },
+            });
+            const allowedGenders = ['female', 'woman', 'non-binary', 'nonbinary'];
+            const userGender = userProfile?.gender?.toLowerCase() || '';
+            if (!allowedGenders.includes(userGender)) {
+                throw new common_1.ForbiddenException('This activity is restricted to women and non-binary travelers');
             }
         }
         if (user.profile?.birthDate) {
