@@ -32,6 +32,11 @@ export class ActivitiesController {
     return this.activitiesService.findAll(req.user.id, query);
   }
 
+  @Get('feed')
+  getFeed(@Req() req: any) {
+    return this.activitiesService.getFeed(req.user.id);
+  }
+
   @Get(':id')
   findOne(@Req() req: any, @Param('id') id: string) {
     return this.activitiesService.findOne(req.user.id, id);
@@ -50,5 +55,28 @@ export class ActivitiesController {
   @Get(':id/participants')
   getParticipants(@Req() req: any, @Param('id') id: string) {
     return this.activitiesService.getParticipants(req.user.id, id);
+  }
+
+  @Get(':id/participants/pending')
+  getPendingParticipants(@Req() req: any, @Param('id') id: string) {
+    return this.activitiesService.getPendingParticipants(req.user.id, id);
+  }
+
+  @Post(':id/participants/:userId/approve')
+  approveParticipant(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.activitiesService.approveParticipant(req.user.id, id, userId);
+  }
+
+  @Post(':id/participants/:userId/reject')
+  rejectParticipant(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.activitiesService.rejectParticipant(req.user.id, id, userId);
   }
 }

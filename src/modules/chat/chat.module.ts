@@ -19,5 +19,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   ],
   controllers: [ChatController],
   providers: [ChatService, PrismaService],
+  exports: [ChatService],
 })
 export class ChatModule {}

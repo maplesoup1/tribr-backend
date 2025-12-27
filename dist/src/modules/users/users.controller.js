@@ -71,6 +71,12 @@ let UsersController = class UsersController {
         const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
         return this.usersService.findNearby(user.id, query.latitude, query.longitude, query.radiusKm, query.limit);
     }
+    async getDestinationStats(location) {
+        return this.usersService.getDestinationStats(location);
+    }
+    async getUserById(id) {
+        return this.usersService.getProfileWithStats(id);
+    }
 };
 exports.UsersController = UsersController;
 __decorate([
@@ -122,6 +128,20 @@ __decorate([
     __metadata("design:paramtypes", [Object, nearby_query_dto_1.NearbyQueryDto]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "getNearby", null);
+__decorate([
+    (0, common_1.Get)('destination-stats'),
+    __param(0, (0, common_1.Query)('location')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getDestinationStats", null);
+__decorate([
+    (0, common_1.Get)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getUserById", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),

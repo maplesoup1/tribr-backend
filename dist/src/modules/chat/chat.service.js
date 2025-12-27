@@ -34,28 +34,33 @@ let ChatService = class ChatService {
     async getMessages(userId, conversationId, take = 50) {
         await this.ensureParticipant(userId, conversationId);
         return this.prisma.message.findMany({
-            where: { conversationId },
+            where: {
+                conversationId,
+                deletedAt: null,
+            },
             orderBy: { createdAt: 'asc' },
             take,
         });
     }
     async sendMessage(userId, conversationId, content) {
         await this.ensureParticipant(userId, conversationId);
-        const message = await this.prisma.message.create({
-            data: {
-                conversationId,
-                senderId: userId,
-                content,
-            },
+        return this.prisma.$transaction(async (tx) => {
+            const message = await tx.message.create({
+                data: {
+                    conversationId,
+                    senderId: userId,
+                    content,
+                },
+            });
+            await tx.conversation.update({
+                where: { id: conversationId },
+                data: {
+                    lastMessageId: message.id,
+                    lastMessageAt: message.createdAt,
+                },
+            });
+            return message;
         });
-        await this.prisma.conversation.update({
-            where: { id: conversationId },
-            data: {
-                lastMessageId: message.id,
-                lastMessageAt: message.createdAt,
-            },
-        });
-        return message;
     }
     async markAsRead(userId, conversationId) {
         await this.ensureParticipant(userId, conversationId);
@@ -71,7 +76,7 @@ let ChatService = class ChatService {
             },
         });
     }
-    async createConversation(userId, participantIds, type = 'dm') {
+    async createConversation(userId, participantIds, type = 'dm', title, metadata) {
         if (type === 'dm' && participantIds.length === 1) {
             const otherUserId = participantIds[0];
             const existingConvo = await this.prisma.conversation.findFirst({
@@ -92,6 +97,8 @@ let ChatService = class ChatService {
             data: {
                 type,
                 ownerId: userId,
+                title,
+                metadata,
                 participants: {
                     create: allParticipants.map((pid) => ({
                         userId: pid,
@@ -118,14 +125,90 @@ let ChatService = class ChatService {
         if (message.senderId !== userId) {
             throw new common_1.ForbiddenException('You can only delete your own messages');
         }
-        await this.prisma.message.update({
-            where: { id: messageId },
-            data: {
-                deletedAt: new Date(),
-                deletedBy: userId,
+        return this.prisma.$transaction(async (tx) => {
+            await tx.message.update({
+                where: { id: messageId },
+                data: {
+                    deletedAt: new Date(),
+                    deletedBy: userId,
+                },
+            });
+            const conversation = await tx.conversation.findUnique({
+                where: { id: conversationId },
+                select: { lastMessageId: true },
+            });
+            if (conversation?.lastMessageId === messageId) {
+                const previousMessage = await tx.message.findFirst({
+                    where: {
+                        conversationId,
+                        deletedAt: null,
+                        id: { not: messageId },
+                    },
+                    orderBy: { createdAt: 'desc' },
+                });
+                await tx.conversation.update({
+                    where: { id: conversationId },
+                    data: {
+                        lastMessageId: previousMessage?.id ?? null,
+                        lastMessageAt: previousMessage?.createdAt ?? null,
+                    },
+                });
+            }
+            return { message: 'Message deleted' };
+        });
+    }
+    async deleteConversation(userId, conversationId) {
+        const convo = await this.prisma.conversation.findUnique({
+            where: { id: conversationId },
+            select: { ownerId: true },
+        });
+        if (!convo) {
+            throw new common_1.NotFoundException('Conversation not found');
+        }
+        if (convo.ownerId !== userId) {
+            throw new common_1.ForbiddenException('Only the owner can delete this conversation');
+        }
+        await this.prisma.conversation.delete({
+            where: { id: conversationId },
+        });
+        return { message: 'Conversation deleted' };
+    }
+    async removeParticipant(userId, conversationId, targetUserId) {
+        const convo = await this.prisma.conversation.findUnique({
+            where: { id: conversationId },
+            select: { ownerId: true },
+        });
+        if (!convo) {
+            throw new common_1.NotFoundException('Conversation not found');
+        }
+        const isSelfRemoval = userId === targetUserId;
+        const isOwner = convo.ownerId === userId;
+        if (!isSelfRemoval && !isOwner) {
+            throw new common_1.ForbiddenException('Only the owner can remove other participants');
+        }
+        if (isSelfRemoval && isOwner) {
+            throw new common_1.BadRequestException('Owner cannot leave the conversation. Transfer ownership or delete the conversation instead.');
+        }
+        const participant = await this.prisma.conversationParticipant.findUnique({
+            where: {
+                conversationId_userId: {
+                    conversationId,
+                    userId: targetUserId,
+                },
             },
         });
-        return { message: 'Message deleted' };
+        if (!participant) {
+            throw new common_1.NotFoundException('Participant not found');
+        }
+        await this.prisma.conversationParticipant.delete({
+            where: {
+                conversationId_userId: {
+                    conversationId,
+                    userId: targetUserId,
+                },
+            },
+        });
+        return { message: isSelfRemoval ? 'Left conversation' : 'Participant removed' };
     }
     async ensureParticipant(userId, conversationId) {
         const convo = await this.prisma.conversation.findUnique({

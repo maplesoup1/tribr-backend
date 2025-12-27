@@ -66,4 +66,18 @@ export class ChatController {
   ) {
     return this.chatService.deleteMessage(req.user.id, conversationId, messageId);
   }
+
+  @Delete('conversations/:id')
+  async deleteConversation(@Req() req: any, @Param('id') conversationId: string) {
+    return this.chatService.deleteConversation(req.user.id, conversationId);
+  }
+
+  @Delete('conversations/:id/participants/:uid')
+  async removeParticipant(
+    @Req() req: any,
+    @Param('id') conversationId: string,
+    @Param('uid') targetUserId: string,
+  ) {
+    return this.chatService.removeParticipant(req.user.id, conversationId, targetUserId);
+  }
 }

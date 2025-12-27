@@ -10,5 +10,8 @@ declare const _default: () => {
         serviceRoleKey: string | undefined;
         jwtSecret: string | undefined;
     };
+    google: {
+        placesApiKey: string | undefined;
+    };
 };
 export default _default;

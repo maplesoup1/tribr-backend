@@ -14,6 +14,8 @@ import { ChatModule } from './modules/chat/chat.module';
 import { BadgesModule } from './modules/badges/badges.module';
 import { ActivitiesModule } from './modules/activities/activities.module';
 import { TravelWalletModule } from './modules/travel-wallet/travel-wallet.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { GeocodingModule } from './modules/geocoding/geocoding.module';
 import configuration from './config/config';
 
 @Module({
@@ -38,6 +40,8 @@ import configuration from './config/config';
     BadgesModule,
     ActivitiesModule,
     TravelWalletModule,
+    NotificationsModule,
+    GeocodingModule,
   ],
   controllers: [AppController],
   providers: [

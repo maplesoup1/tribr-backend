@@ -16,13 +16,6 @@ export declare class ChatController {
         updatedAt: Date;
     }>;
     listConversations(req: any): Promise<({
-        participants: {
-            conversationId: string;
-            userId: string;
-            role: import(".prisma/client").$Enums.ParticipantRole;
-            lastReadAt: Date | null;
-            joinedAt: Date;
-        }[];
         lastMessage: {
             id: string;
             conversationId: string;
@@ -36,6 +29,13 @@ export declare class ChatController {
             deletedBy: string | null;
             journeyId: string | null;
         } | null;
+        participants: {
+            conversationId: string;
+            userId: string;
+            role: import(".prisma/client").$Enums.ParticipantRole;
+            lastReadAt: Date | null;
+            joinedAt: Date;
+        }[];
     } & {
         id: string;
         type: import(".prisma/client").$Enums.ConversationType;
@@ -77,6 +77,12 @@ export declare class ChatController {
         success: boolean;
     }>;
     deleteMessage(req: any, conversationId: string, messageId: string): Promise<{
+        message: string;
+    }>;
+    deleteConversation(req: any, conversationId: string): Promise<{
+        message: string;
+    }>;
+    removeParticipant(req: any, conversationId: string, targetUserId: string): Promise<{
         message: string;
     }>;
 }

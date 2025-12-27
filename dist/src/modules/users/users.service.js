@@ -376,20 +376,6 @@ let UsersService = class UsersService {
       WHERE
         u.id <> ${currentUserId}
         AND ul.location IS NOT NULL
-        AND (
-          ul.privacy = 'public'
-          OR (
-            ul.privacy = 'connections' AND EXISTS (
-              SELECT 1 FROM connections c
-              WHERE c.status = 'accepted'
-                AND (
-                  (c."userA" = ${currentUserId} AND c."userB" = u.id)
-                  OR
-                  (c."userB" = ${currentUserId} AND c."userA" = u.id)
-                )
-            )
-          )
-        )
         AND ST_DWithin(
           ul.location,
           ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography,
@@ -398,7 +384,18 @@ let UsersService = class UsersService {
       ORDER BY distance ASC
       LIMIT ${safeLimit}
     `;
-        return results;
+        return results.map((u) => ({
+            id: u.id,
+            name: u.fullName || 'User',
+            avatar: u.avatarUrl,
+            location: {
+                latitude: u.latitude,
+                longitude: u.longitude,
+                city: u.city,
+                country: u.country,
+            },
+            distance: `${Math.round((u.distance / 1000) * 10) / 10} km`,
+        }));
     }
     async uploadVideo(userId, file) {
         const supabase = this.supabaseService.getClient();
@@ -449,6 +446,40 @@ let UsersService = class UsersService {
         score += Math.min(connections * 2, 25);
         score += Math.min(trips * 5, 25);
         return Math.min(score, 100);
+    }
+    async getDestinationStats(location) {
+        if (!location)
+            return { currentCount: 0, incomingCount: 0, totalCount: 0 };
+        const currentCount = await this.prisma.profile.count({
+            where: {
+                OR: [
+                    { city: { contains: location, mode: 'insensitive' } },
+                    { country: { contains: location, mode: 'insensitive' } },
+                ],
+            },
+        });
+        const today = new Date();
+        const incomingCount = await this.prisma.journey.count({
+            where: {
+                destination: { contains: location, mode: 'insensitive' },
+                startDate: { gte: today },
+                status: { in: ['draft', 'active'] },
+            },
+        });
+        const incomingLegsCount = await this.prisma.journeyLeg.count({
+            where: {
+                destination: { contains: location, mode: 'insensitive' },
+                startDate: { gte: today },
+            },
+        });
+        const finalIncoming = Math.max(incomingCount, incomingLegsCount);
+        return {
+            location,
+            currentCount,
+            incomingCount: finalIncoming,
+            totalCount: currentCount + finalIncoming,
+            trending: currentCount > 5,
+        };
     }
 };
 exports.UsersService = UsersService;

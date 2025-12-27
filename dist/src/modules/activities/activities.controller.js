@@ -29,6 +29,9 @@ let ActivitiesController = class ActivitiesController {
     findAll(req, query) {
         return this.activitiesService.findAll(req.user.id, query);
     }
+    getFeed(req) {
+        return this.activitiesService.getFeed(req.user.id);
+    }
     findOne(req, id) {
         return this.activitiesService.findOne(req.user.id, id);
     }
@@ -40,6 +43,15 @@ let ActivitiesController = class ActivitiesController {
     }
     getParticipants(req, id) {
         return this.activitiesService.getParticipants(req.user.id, id);
+    }
+    getPendingParticipants(req, id) {
+        return this.activitiesService.getPendingParticipants(req.user.id, id);
+    }
+    approveParticipant(req, id, userId) {
+        return this.activitiesService.approveParticipant(req.user.id, id, userId);
+    }
+    rejectParticipant(req, id, userId) {
+        return this.activitiesService.rejectParticipant(req.user.id, id, userId);
     }
 };
 exports.ActivitiesController = ActivitiesController;
@@ -61,6 +73,13 @@ __decorate([
     __metadata("design:paramtypes", [Object, activity_query_dto_1.ActivityQueryDto]),
     __metadata("design:returntype", void 0)
 ], ActivitiesController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('feed'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], ActivitiesController.prototype, "getFeed", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Req)()),
@@ -93,6 +112,32 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], ActivitiesController.prototype, "getParticipants", null);
+__decorate([
+    (0, common_1.Get)(':id/participants/pending'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], ActivitiesController.prototype, "getPendingParticipants", null);
+__decorate([
+    (0, common_1.Post)(':id/participants/:userId/approve'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Param)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], ActivitiesController.prototype, "approveParticipant", null);
+__decorate([
+    (0, common_1.Post)(':id/participants/:userId/reject'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Param)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], ActivitiesController.prototype, "rejectParticipant", null);
 exports.ActivitiesController = ActivitiesController = __decorate([
     (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),
     (0, common_1.Controller)('activities'),

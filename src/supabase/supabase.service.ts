@@ -53,24 +53,54 @@ export class SupabaseService implements OnModuleInit {
    * Ensure required storage buckets exist
    */
   private async ensureStorageBuckets() {
-    const buckets = ['avatars'];
-
-    for (const bucketName of buckets) {
-      const { data: existingBucket } = await this.supabase.storage.getBucket(
-        bucketName,
-      );
-
-      if (!existingBucket) {
-        const { error } = await this.supabase.storage.createBucket(bucketName, {
+    const buckets = [
+      {
+        name: 'avatars',
+        options: {
           public: true,
           fileSizeLimit: 5 * 1024 * 1024, // 5MB
           allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
-        });
+        },
+      },
+      {
+        name: 'profile-videos',
+        options: {
+          public: true,
+          // Allow short intro videos; keep under CDN-friendly limit.
+          fileSizeLimit: 200 * 1024 * 1024, // 200MB
+          allowedMimeTypes: ['video/mp4', 'video/quicktime', 'video/webm'],
+        },
+      },
+      {
+        name: 'wallet-documents',
+        options: {
+          public: true,
+          fileSizeLimit: 10 * 1024 * 1024, // 10MB
+          allowedMimeTypes: [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+          ],
+        },
+      },
+    ];
+
+    for (const bucket of buckets) {
+      const { data: existingBucket } = await this.supabase.storage.getBucket(
+        bucket.name,
+      );
+
+      if (!existingBucket) {
+        const { error } = await this.supabase.storage.createBucket(
+          bucket.name,
+          bucket.options,
+        );
 
         if (error && !error.message.includes('already exists')) {
-          console.error(`Failed to create bucket ${bucketName}:`, error);
+          console.error(`Failed to create bucket ${bucket.name}:`, error);
         } else {
-          console.log(`Storage bucket '${bucketName}' ready`);
+          console.log(`Storage bucket '${bucket.name}' ready`);
         }
       }
     }

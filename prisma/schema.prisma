@@ -30,6 +30,7 @@ enum Visibility {
 enum ConnectionStatus {
   pending
   accepted
+  declined
 }
 
 enum ConversationType {
@@ -98,6 +99,18 @@ enum ActivityParticipantRole {
   guest
 }
 
+// Notification types
+enum NotificationType {
+  activity_join_request    // Someone wants to join your activity
+  activity_request_approved // Your join request was approved
+  activity_request_declined // Your join request was declined
+  connection_request       // Someone sent you a connection request
+  connection_accepted      // Your connection request was accepted
+  connection_declined      // Your connection request was declined
+  new_message              // You received a new message
+  system                   // System notification (verification, etc.)
+}
+
 // Travel Wallet document types
 enum DocumentType {
   passport
@@ -135,6 +148,7 @@ model User {
   profile            Profile?
   connectionsAsUserA Connection[] @relation("UserAConnections")
   connectionsAsUserB Connection[] @relation("UserBConnections")
+  initiatedConnections Connection[] @relation("ConnectionRequester")
   journeys           Journey[]
   blockedUsers       UserBlock[] @relation("BlockerRelation")
   blockedBy          UserBlock[] @relation("BlockedRelation")
@@ -150,6 +164,7 @@ model User {
   activityParticipants  ActivityParticipant[]
   walletDocuments       WalletDocument[]
   languages             UserLanguage[]
+  notifications         Notification[]
 
   @@index([email])
   @@index([phone])
@@ -236,12 +251,14 @@ model Connection {
   id        String           @id @default(uuid())
   userA     String
   userB     String
+  requesterId String?
   status    ConnectionStatus @default(pending)
   source    String?
   createdAt DateTime         @default(now())
 
   userARelation User @relation("UserAConnections", fields: [userA], references: [id], onDelete: Cascade)
   userBRelation User @relation("UserBConnections", fields: [userB], references: [id], onDelete: Cascade)
+  requester     User?  @relation("ConnectionRequester", fields: [requesterId], references: [id], onDelete: Cascade)
 
   @@unique([userA, userB])
   @@index([userA, userB])
@@ -548,4 +565,32 @@ model WalletDocument {
   @@index([userId, documentType])
   @@index([userId, expirationDate])
   @@map("wallet_documents")
+}
+
+// =======================================================
+//  11. NOTIFICATIONS
+// =======================================================
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String           // User receiving the notification
+  type        NotificationType
+  title       String
+  body        String?
+
+  // Reference IDs for navigation (stored in data JSON for flexibility)
+  data        Json?            @db.JsonB  // { activityId?, connectionId?, conversationId?, fromUserId? }
+
+  // Status
+  isRead      Boolean          @default(false)
+
+  // Timestamps
+  createdAt   DateTime         @default(now())
+  readAt      DateTime?
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@index([userId, type])
+  @@map("notifications")
 }

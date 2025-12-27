@@ -11,6 +11,7 @@ import {
   UploadedFile,
   BadRequestException,
   Query,
+  Param,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
@@ -115,5 +116,18 @@ export class UsersController {
       query.radiusKm,
       query.limit,
     );
+  }
+
+  @Get('destination-stats')
+  async getDestinationStats(@Query('location') location: string) {
+    return this.usersService.getDestinationStats(location);
+  }
+
+  /**
+   * Get another user's public profile by ID
+   */
+  @Get(':id')
+  async getUserById(@Param('id') id: string) {
+    return this.usersService.getProfileWithStats(id);
   }
 }

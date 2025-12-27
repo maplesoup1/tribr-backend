@@ -11,22 +11,30 @@ export declare class ConnectionsController {
         id: string;
         userA: string;
         userB: string;
+        requesterId: string | null;
         status: import(".prisma/client").$Enums.ConnectionStatus;
         source: string | null;
         createdAt: Date;
     }>;
     findAll(req: any, status?: ConnectionStatus, take?: number, skip?: number): Promise<{
         id: string;
-        userA: string;
-        userB: string;
         status: import(".prisma/client").$Enums.ConnectionStatus;
-        source: string | null;
         createdAt: Date;
+        direction: string;
+        otherUser: {
+            id: string;
+            name: string;
+            avatar: string | undefined;
+            city: string | undefined;
+            country: string | undefined;
+        };
+        distanceKm: number | null;
     }[]>;
     update(id: string, req: any, dto: UpdateConnectionDto): Promise<{
         id: string;
         userA: string;
         userB: string;
+        requesterId: string | null;
         status: import(".prisma/client").$Enums.ConnectionStatus;
         source: string | null;
         createdAt: Date;
@@ -35,6 +43,7 @@ export declare class ConnectionsController {
         id: string;
         userA: string;
         userB: string;
+        requesterId: string | null;
         status: import(".prisma/client").$Enums.ConnectionStatus;
         source: string | null;
         createdAt: Date;

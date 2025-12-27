@@ -14,10 +14,33 @@ import {
   ActivityParticipantStatus,
   ActivityParticipantRole,
 } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ChatService } from '../chat/chat.service';
 
 @Injectable()
 export class ActivitiesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+    private readonly chatService: ChatService,
+  ) {}
+
+  /**
+   * Calculate exact age from birth date, accounting for month and day
+   */
+  private calculateAge(birthDate: Date): number {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+
+    // If birthday hasn't occurred this year, subtract 1
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+
+    return age;
+  }
 
   async create(userId: string, dto: CreateActivityDto) {
     // 1. Validate age range (defensive defaults)
@@ -71,7 +94,39 @@ export class ActivitiesService {
       WHERE id = ${activity.id}
     `;
 
-    return this.findOne(userId, activity.id);
+    // Ensure creator is recorded as host participant
+    await this.prisma.activityParticipant.create({
+      data: {
+        activityId: activity.id,
+        userId,
+        role: ActivityParticipantRole.host,
+        status: ActivityParticipantStatus.joined,
+      },
+    }).catch((err: any) => {
+      if (err?.code !== 'P2002') {
+        throw err;
+      }
+    });
+
+    // Create group conversation tied to this activity
+    const conversation = await this.chatService.createConversation(
+      userId,
+      [],
+      'group',
+      dto.description || 'Activity Chat',
+      {
+        activityId: activity.id,
+        activityTitle: dto.description,
+        activityEmoji: dto.emoji,
+        activityLocation: dto.locationText,
+      },
+    );
+
+    const activityWithDetails = await this.findOne(userId, activity.id);
+    return {
+      ...activityWithDetails,
+      conversationId: conversation.id,
+    };
   }
 
   async findAll(userId: string, query: ActivityQueryDto) {
@@ -99,13 +154,16 @@ export class ActivitiesService {
         a."timeType",
         a."specificTime",
         a."locationText",
+        ST_Y(a.location::geometry) as latitude,
+        ST_X(a.location::geometry) as longitude,
         a.privacy,
         a."womenOnly",
         a."ageMin",
         a."ageMax",
         a."createdAt",
-        p."fullName" as "creatorName",
+        a."creatorId",
         p."avatarUrl" as "creatorAvatar",
+        c.id as "conversationId",
         ST_DistanceSphere(
           a.location::geometry,
           ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geometry
@@ -114,7 +172,7 @@ export class ActivitiesService {
             SELECT count(*) 
             FROM activity_participants ap 
             WHERE ap."activityId" = a.id AND ap.status = 'joined'
-        )::int as "participantsCount",
+        )::int as "participantCount",
         EXISTS (
             SELECT 1 
             FROM activity_participants ap 
@@ -123,6 +181,7 @@ export class ActivitiesService {
       FROM activities a
       JOIN users u ON a."creatorId" = u.id
       LEFT JOIN profiles p ON p."userId" = u.id
+      LEFT JOIN conversations c ON c.metadata->>'activityId' = a.id::text
       WHERE 
         a.status = 'active'
         ${dateCondition}
@@ -146,9 +205,17 @@ export class ActivitiesService {
     `);
 
     // Parse specificTime if needed or other transformations
-    return results.map(r => ({
-        ...r,
-        // Handle boolean conversion from raw query if necessary (Postgres usually returns bools correctly to Prisma)
+    return results.map((r) => ({
+      ...r,
+      latitude: r.latitude !== undefined ? Number(r.latitude) : r.latitude,
+      longitude: r.longitude !== undefined ? Number(r.longitude) : r.longitude,
+      distance: r.distance !== undefined ? Number(r.distance) : r.distance,
+      creator: {
+        id: r.creatorId,
+        name: r.creatorName || 'Unknown',
+        avatar: r.creatorAvatar,
+      },
+      participants: [],
     }));
   }
 
@@ -178,6 +245,14 @@ export class ActivitiesService {
         throw new NotFoundException('Activity not found');
     }
 
+    const [coords] = await this.prisma.$queryRaw<{ latitude: number; longitude: number }[]>`
+      SELECT 
+        ST_Y(location::geometry) as latitude,
+        ST_X(location::geometry) as longitude
+      FROM activities
+      WHERE id = ${activityId}
+    `;
+
     const userParticipant = await this.prisma.activityParticipant.findUnique({
         where: {
             activityId_userId: {
@@ -202,12 +277,28 @@ export class ActivitiesService {
         }
     });
 
+    // Find associated conversation
+    const conversation = await this.prisma.conversation.findFirst({
+        where: {
+            metadata: {
+                path: ['activityId'],
+                equals: activityId,
+            },
+        },
+        select: { id: true },
+    });
+
     return {
         ...activity,
         participantsCount,
+        conversationId: conversation?.id,
         isJoined: !!userParticipant,
         myStatus: userParticipant?.status,
         myRole: userParticipant?.role,
+        latitude:
+          coords?.latitude !== undefined ? Number(coords.latitude) : coords?.latitude,
+        longitude:
+          coords?.longitude !== undefined ? Number(coords.longitude) : coords?.longitude,
         creator: {
             id: activity.creator.id,
             name: activity.creator.profile?.fullName || 'User',
@@ -255,9 +346,9 @@ export class ActivitiesService {
       }
     }
 
-    // 2. Age Check (Approximate)
+    // 2. Age Check (Precise calculation)
     if (user.profile?.birthDate) {
-        const age = new Date().getFullYear() - user.profile.birthDate.getFullYear();
+        const age = this.calculateAge(user.profile.birthDate);
         if (age < activity.ageMin || age > activity.ageMax) {
             throw new ForbiddenException(`Activity is restricted to ages ${activity.ageMin}-${activity.ageMax}`);
         }
@@ -269,7 +360,7 @@ export class ActivitiesService {
         : ActivityParticipantStatus.pending;
 
     try {
-        return await this.prisma.activityParticipant.create({
+        const participant = await this.prisma.activityParticipant.create({
             data: {
                 activityId,
                 userId,
@@ -277,6 +368,75 @@ export class ActivitiesService {
                 status
             }
         });
+
+        // Add to activity conversation when auto-joined (open activities)
+        let conversationId: string | undefined;
+        if (status === ActivityParticipantStatus.joined) {
+            let conversation = await this.prisma.conversation.findFirst({
+              where: {
+                metadata: {
+                  path: ['activityId'],
+                  equals: activityId,
+                },
+              },
+            });
+
+            if (!conversation) {
+              conversation = await this.chatService.createConversation(
+                activity.creatorId,
+                [],
+                'group',
+                activity.description || 'Activity Chat',
+                {
+                  activityId: activity.id,
+                  activityTitle: activity.description,
+                  activityEmoji: activity.emoji,
+                  activityLocation: activity.locationText,
+                },
+              );
+            }
+
+            conversationId = conversation.id;
+
+            await this.prisma.conversationParticipant.create({
+              data: {
+                conversationId,
+                userId,
+                role: 'member',
+              },
+            }).catch((err: any) => {
+              if (err?.code !== 'P2002') {
+                throw err;
+              }
+            });
+        }
+
+        // Send notification to activity creator for private activities (join request)
+        if (status === ActivityParticipantStatus.pending) {
+            const requesterProfile = await this.prisma.profile.findUnique({
+                where: { userId }
+            });
+
+            await this.notificationsService.notifyActivityJoinRequest(
+                activity.creatorId,
+                {
+                    id: userId,
+                    name: requesterProfile?.fullName || 'Someone',
+                    avatar: requesterProfile?.avatarUrl ?? undefined,
+                },
+                {
+                    id: activityId,
+                    description: activity.description ?? undefined,
+                    emoji: activity.emoji ?? undefined,
+                }
+            );
+        }
+
+        return {
+          ...participant,
+          conversationId,
+          activityTitle: activity.description,
+        };
     } catch (e) {
         if (e.code === 'P2002') {
             throw new BadRequestException('You have already requested to join this activity');
@@ -314,5 +474,197 @@ export class ActivitiesService {
           },
           orderBy: { joinedAt: 'asc' }
       });
+  }
+
+  /**
+   * Approve a pending participant (host only)
+   */
+  async approveParticipant(hostUserId: string, activityId: string, participantUserId: string) {
+    const activity = await this.prisma.activity.findUnique({
+      where: { id: activityId },
+    });
+
+    if (!activity) throw new NotFoundException('Activity not found');
+
+    // Only host/creator can approve
+    if (activity.creatorId !== hostUserId) {
+      throw new ForbiddenException('Only the activity host can approve participants');
+    }
+
+    const participant = await this.prisma.activityParticipant.findUnique({
+      where: { activityId_userId: { activityId, userId: participantUserId } },
+    });
+
+    if (!participant) {
+      throw new NotFoundException('Participant not found');
+    }
+
+    if (participant.status !== ActivityParticipantStatus.pending) {
+      throw new BadRequestException('Participant is not in pending status');
+    }
+
+    // Update status to joined
+    const updated = await this.prisma.activityParticipant.update({
+      where: { activityId_userId: { activityId, userId: participantUserId } },
+      data: { status: ActivityParticipantStatus.joined },
+    });
+
+    // Add to conversation
+    let conversation = await this.prisma.conversation.findFirst({
+      where: {
+        metadata: {
+          path: ['activityId'],
+          equals: activityId,
+        },
+      },
+    });
+
+    if (!conversation) {
+      conversation = await this.chatService.createConversation(
+        activity.creatorId,
+        [],
+        'group',
+        activity.description || 'Activity Chat',
+        {
+          activityId: activity.id,
+          activityTitle: activity.description,
+          activityEmoji: activity.emoji,
+          activityLocation: activity.locationText,
+        },
+      );
+    }
+
+    await this.prisma.conversationParticipant.create({
+      data: {
+        conversationId: conversation.id,
+        userId: participantUserId,
+        role: 'member',
+      },
+    }).catch((err: any) => {
+      if (err?.code !== 'P2002') throw err;
+    });
+
+    // Notify the user they were approved
+    const hostProfile = await this.prisma.profile.findUnique({
+      where: { userId: hostUserId },
+    });
+
+    await this.notificationsService.create({
+      userId: participantUserId,
+      type: 'activity_request_approved',
+      title: 'Request Approved',
+      body: `${hostProfile?.fullName || 'The host'} approved your request to join "${activity.description}"`,
+      data: {
+        activityId,
+        conversationId: conversation.id,
+      },
+    });
+
+    return { ...updated, conversationId: conversation.id };
+  }
+
+  /**
+   * Reject a pending participant (host only)
+   */
+  async rejectParticipant(hostUserId: string, activityId: string, participantUserId: string) {
+    const activity = await this.prisma.activity.findUnique({
+      where: { id: activityId },
+    });
+
+    if (!activity) throw new NotFoundException('Activity not found');
+
+    // Only host/creator can reject
+    if (activity.creatorId !== hostUserId) {
+      throw new ForbiddenException('Only the activity host can reject participants');
+    }
+
+    const participant = await this.prisma.activityParticipant.findUnique({
+      where: { activityId_userId: { activityId, userId: participantUserId } },
+    });
+
+    if (!participant) {
+      throw new NotFoundException('Participant not found');
+    }
+
+    if (participant.status !== ActivityParticipantStatus.pending) {
+      throw new BadRequestException('Participant is not in pending status');
+    }
+
+    // Delete the participant record
+    await this.prisma.activityParticipant.delete({
+      where: { activityId_userId: { activityId, userId: participantUserId } },
+    });
+
+    // Notify the user they were rejected
+    await this.notificationsService.create({
+      userId: participantUserId,
+      type: 'activity_request_declined',
+      title: 'Request Declined',
+      body: `Your request to join "${activity.description}" was declined`,
+      data: { activityId },
+    });
+
+    return { message: 'Participant rejected' };
+  }
+
+  /**
+   * Get pending participants for an activity (host only)
+   */
+  async getPendingParticipants(hostUserId: string, activityId: string) {
+    const activity = await this.prisma.activity.findUnique({
+      where: { id: activityId },
+    });
+
+    if (!activity) throw new NotFoundException('Activity not found');
+
+    // Only host/creator can see pending
+    if (activity.creatorId !== hostUserId) {
+      throw new ForbiddenException('Only the activity host can view pending participants');
+    }
+
+    return this.prisma.activityParticipant.findMany({
+      where: {
+        activityId,
+        status: ActivityParticipantStatus.pending,
+      },
+      include: {
+        user: {
+          include: { profile: true },
+        },
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+  }
+
+  async getFeed(userId: string) {
+    // 1. New Activities (last 5)
+    const newActivities = await this.prisma.activity.findMany({
+      where: {
+        status: 'active',
+        privacy: 'open',
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      include: {
+        creator: { include: { profile: true } },
+      },
+    });
+
+    // 2. Map to feed items
+    const activityItems = newActivities.map((a) => ({
+      id: a.id,
+      type: 'activity_created',
+      user: {
+        name: a.creator.profile?.fullName || 'Someone',
+        avatar: a.creator.profile?.avatarUrl,
+      },
+      action: `posted a new activity: ${a.emoji || '📅'} ${a.description}`,
+      time: a.createdAt,
+      metadata: { activityId: a.id },
+    }));
+
+    return activityItems.sort(
+      (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime(),
+    );
   }
 }

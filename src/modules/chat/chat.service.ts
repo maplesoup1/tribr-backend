@@ -23,7 +23,10 @@ export class ChatService {
   async getMessages(userId: string, conversationId: string, take = 50) {
     await this.ensureParticipant(userId, conversationId);
     return this.prisma.message.findMany({
-      where: { conversationId },
+      where: {
+        conversationId,
+        deletedAt: null, // Filter out soft-deleted messages
+      },
       orderBy: { createdAt: 'asc' },
       take,
     });
@@ -32,23 +35,26 @@ export class ChatService {
   async sendMessage(userId: string, conversationId: string, content: string) {
     await this.ensureParticipant(userId, conversationId);
 
-    const message = await this.prisma.message.create({
-      data: {
-        conversationId,
-        senderId: userId,
-        content,
-      },
-    });
+    // Use transaction to ensure message creation and conversation update are atomic
+    return this.prisma.$transaction(async (tx) => {
+      const message = await tx.message.create({
+        data: {
+          conversationId,
+          senderId: userId,
+          content,
+        },
+      });
 
-    await this.prisma.conversation.update({
-      where: { id: conversationId },
-      data: {
-        lastMessageId: message.id,
-        lastMessageAt: message.createdAt,
-      },
-    });
+      await tx.conversation.update({
+        where: { id: conversationId },
+        data: {
+          lastMessageId: message.id,
+          lastMessageAt: message.createdAt,
+        },
+      });
 
-    return message;
+      return message;
+    });
   }
 
   async markAsRead(userId: string, conversationId: string) {
@@ -66,7 +72,13 @@ export class ChatService {
     });
   }
 
-  async createConversation(userId: string, participantIds: string[], type: 'dm' | 'group' = 'dm') {
+  async createConversation(
+    userId: string,
+    participantIds: string[],
+    type: 'dm' | 'group' = 'dm',
+    title?: string,
+    metadata?: any,
+  ) {
     // For DMs, check if one already exists
     if (type === 'dm' && participantIds.length === 1) {
       const otherUserId = participantIds[0];
@@ -91,6 +103,8 @@ export class ChatService {
       data: {
         type,
         ownerId: userId,
+        title,
+        metadata,
         participants: {
           create: allParticipants.map((pid) => ({
             userId: pid,
@@ -126,16 +140,113 @@ export class ChatService {
       throw new ForbiddenException('You can only delete your own messages');
     }
 
-    // 4. Soft delete: set deletedAt and deletedBy
-    await this.prisma.message.update({
-      where: { id: messageId },
-      data: {
-        deletedAt: new Date(),
-        deletedBy: userId,
+    // Use transaction for atomicity
+    return this.prisma.$transaction(async (tx) => {
+      // 4. Soft delete: set deletedAt and deletedBy
+      await tx.message.update({
+        where: { id: messageId },
+        data: {
+          deletedAt: new Date(),
+          deletedBy: userId,
+        },
+      });
+
+      // 5. If this was the lastMessage, update conversation to point to previous non-deleted message
+      const conversation = await tx.conversation.findUnique({
+        where: { id: conversationId },
+        select: { lastMessageId: true },
+      });
+
+      if (conversation?.lastMessageId === messageId) {
+        // Find the most recent non-deleted message
+        const previousMessage = await tx.message.findFirst({
+          where: {
+            conversationId,
+            deletedAt: null,
+            id: { not: messageId },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        await tx.conversation.update({
+          where: { id: conversationId },
+          data: {
+            lastMessageId: previousMessage?.id ?? null,
+            lastMessageAt: previousMessage?.createdAt ?? null,
+          },
+        });
+      }
+
+      return { message: 'Message deleted' };
+    });
+  }
+
+  async deleteConversation(userId: string, conversationId: string) {
+    const convo = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { ownerId: true },
+    });
+
+    if (!convo) {
+      throw new NotFoundException('Conversation not found');
+    }
+    if (convo.ownerId !== userId) {
+      throw new ForbiddenException('Only the owner can delete this conversation');
+    }
+
+    await this.prisma.conversation.delete({
+      where: { id: conversationId },
+    });
+
+    return { message: 'Conversation deleted' };
+  }
+
+  async removeParticipant(userId: string, conversationId: string, targetUserId: string) {
+    const convo = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { ownerId: true },
+    });
+
+    if (!convo) {
+      throw new NotFoundException('Conversation not found');
+    }
+
+    // Authorization: User can remove themselves OR owner can remove others
+    const isSelfRemoval = userId === targetUserId;
+    const isOwner = convo.ownerId === userId;
+
+    if (!isSelfRemoval && !isOwner) {
+      throw new ForbiddenException('Only the owner can remove other participants');
+    }
+
+    // Owner cannot remove themselves (would leave conversation orphaned)
+    if (isSelfRemoval && isOwner) {
+      throw new BadRequestException('Owner cannot leave the conversation. Transfer ownership or delete the conversation instead.');
+    }
+
+    const participant = await this.prisma.conversationParticipant.findUnique({
+      where: {
+        conversationId_userId: {
+          conversationId,
+          userId: targetUserId,
+        },
       },
     });
 
-    return { message: 'Message deleted' };
+    if (!participant) {
+      throw new NotFoundException('Participant not found');
+    }
+
+    await this.prisma.conversationParticipant.delete({
+      where: {
+        conversationId_userId: {
+          conversationId,
+          userId: targetUserId,
+        },
+      },
+    });
+
+    return { message: isSelfRemoval ? 'Left conversation' : 'Participant removed' };
   }
 
   private async ensureParticipant(userId: string, conversationId: string) {

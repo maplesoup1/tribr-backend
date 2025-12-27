@@ -535,20 +535,6 @@ export class UsersService {
       WHERE
         u.id <> ${currentUserId}
         AND ul.location IS NOT NULL
-        AND (
-          ul.privacy = 'public'
-          OR (
-            ul.privacy = 'connections' AND EXISTS (
-              SELECT 1 FROM connections c
-              WHERE c.status = 'accepted'
-                AND (
-                  (c."userA" = ${currentUserId} AND c."userB" = u.id)
-                  OR
-                  (c."userB" = ${currentUserId} AND c."userA" = u.id)
-                )
-            )
-          )
-        )
         AND ST_DWithin(
           ul.location,
           ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography,
@@ -558,7 +544,18 @@ export class UsersService {
       LIMIT ${safeLimit}
     `;
 
-    return results;
+    return results.map((u) => ({
+      id: u.id,
+      name: u.fullName || 'User',
+      avatar: u.avatarUrl,
+      location: {
+        latitude: u.latitude,
+        longitude: u.longitude,
+        city: u.city,
+        country: u.country,
+      },
+      distance: `${Math.round((u.distance / 1000) * 10) / 10} km`,
+    }));
   }
 
   /**
@@ -641,5 +638,54 @@ export class UsersService {
     score += Math.min(trips * 5, 25);
 
     return Math.min(score, 100);
+  }
+
+  /**
+   * Get stats for a specific destination (Tribr counts)
+   * Matches against Profile city/country and Journey destinations
+   */
+  async getDestinationStats(location: string) {
+    if (!location) return { currentCount: 0, incomingCount: 0, totalCount: 0 };
+
+    // 1. Users currently there (based on Profile city/country)
+    // Note: Ideally we would use UserLocation + Geocoding, but text match is a fallback
+    const currentCount = await this.prisma.profile.count({
+      where: {
+        OR: [
+          { city: { contains: location, mode: 'insensitive' } },
+          { country: { contains: location, mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    // 2. Users traveling there soon (Future Journeys)
+    const today = new Date();
+    const incomingCount = await this.prisma.journey.count({
+      where: {
+        destination: { contains: location, mode: 'insensitive' },
+        startDate: { gte: today },
+        status: { in: ['draft', 'active'] },
+      },
+    });
+
+    // Also include JourneyLegs if destination is in legs
+    const incomingLegsCount = await this.prisma.journeyLeg.count({
+      where: {
+        destination: { contains: location, mode: 'insensitive' },
+        startDate: { gte: today },
+      },
+    });
+
+    // Simple max to avoid double counting if journey & leg match (rough approximation)
+    const finalIncoming = Math.max(incomingCount, incomingLegsCount);
+
+    return {
+      location,
+      currentCount,
+      incomingCount: finalIncoming,
+      totalCount: currentCount + finalIncoming,
+      // Mock some activity trend
+      trending: currentCount > 5,
+    };
   }
 }

@@ -42,6 +42,12 @@ let ChatController = class ChatController {
     async deleteMessage(req, conversationId, messageId) {
         return this.chatService.deleteMessage(req.user.id, conversationId, messageId);
     }
+    async deleteConversation(req, conversationId) {
+        return this.chatService.deleteConversation(req.user.id, conversationId);
+    }
+    async removeParticipant(req, conversationId, targetUserId) {
+        return this.chatService.removeParticipant(req.user.id, conversationId, targetUserId);
+    }
 };
 exports.ChatController = ChatController;
 __decorate([
@@ -94,6 +100,23 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "deleteMessage", null);
+__decorate([
+    (0, common_1.Delete)('conversations/:id'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "deleteConversation", null);
+__decorate([
+    (0, common_1.Delete)('conversations/:id/participants/:uid'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Param)('uid')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "removeParticipant", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),
     (0, common_1.Controller)('chat'),

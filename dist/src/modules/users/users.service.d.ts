@@ -277,14 +277,15 @@ export declare class UsersService {
     }>;
     findNearby(currentUserId: string, latitude: number, longitude: number, radiusKm?: number, limit?: number): Promise<{
         id: string;
-        fullName: string | null;
-        avatarUrl: string | null;
-        city: string | null;
-        country: string | null;
-        latitude: number;
-        longitude: number;
-        distance: number;
-        updatedAt: Date;
+        name: string;
+        avatar: string | null;
+        location: {
+            latitude: number;
+            longitude: number;
+            city: string | null;
+            country: string | null;
+        };
+        distance: string;
     }[]>;
     uploadVideo(userId: string, file: Express.Multer.File): Promise<{
         message: string;
@@ -321,4 +322,17 @@ export declare class UsersService {
         }) | null;
     }>;
     private calculateTrustScore;
+    getDestinationStats(location: string): Promise<{
+        currentCount: number;
+        incomingCount: number;
+        totalCount: number;
+        location?: undefined;
+        trending?: undefined;
+    } | {
+        location: string;
+        currentCount: number;
+        incomingCount: number;
+        totalCount: number;
+        trending: boolean;
+    }>;
 }

@@ -10,4 +10,7 @@ export default () => ({
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     jwtSecret: process.env.SUPABASE_JWT_SECRET,
   },
+  google: {
+    placesApiKey: process.env.GOOGLE_PLACES_API_KEY,
+  },
 });

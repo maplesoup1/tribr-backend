@@ -3,13 +3,6 @@ export declare class ChatService {
     private readonly prisma;
     constructor(prisma: PrismaService);
     listConversations(userId: string): Promise<({
-        participants: {
-            conversationId: string;
-            userId: string;
-            role: import(".prisma/client").$Enums.ParticipantRole;
-            lastReadAt: Date | null;
-            joinedAt: Date;
-        }[];
         lastMessage: {
             id: string;
             conversationId: string;
@@ -23,6 +16,13 @@ export declare class ChatService {
             deletedBy: string | null;
             journeyId: string | null;
         } | null;
+        participants: {
+            conversationId: string;
+            userId: string;
+            role: import(".prisma/client").$Enums.ParticipantRole;
+            lastReadAt: Date | null;
+            joinedAt: Date;
+        }[];
     } & {
         id: string;
         type: import(".prisma/client").$Enums.ConversationType;
@@ -61,7 +61,7 @@ export declare class ChatService {
         journeyId: string | null;
     }>;
     markAsRead(userId: string, conversationId: string): Promise<void>;
-    createConversation(userId: string, participantIds: string[], type?: 'dm' | 'group'): Promise<{
+    createConversation(userId: string, participantIds: string[], type?: 'dm' | 'group', title?: string, metadata?: any): Promise<{
         id: string;
         type: import(".prisma/client").$Enums.ConversationType;
         title: string | null;
@@ -73,6 +73,12 @@ export declare class ChatService {
         updatedAt: Date;
     }>;
     deleteMessage(userId: string, conversationId: string, messageId: string): Promise<{
+        message: string;
+    }>;
+    deleteConversation(userId: string, conversationId: string): Promise<{
+        message: string;
+    }>;
+    removeParticipant(userId: string, conversationId: string, targetUserId: string): Promise<{
         message: string;
     }>;
     private ensureParticipant;
