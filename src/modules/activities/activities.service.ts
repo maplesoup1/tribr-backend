@@ -57,10 +57,14 @@ export class ActivitiesService {
       // We store it as a DateTime object, usually combining with the date or just storing the time component depending on DB
       // Prisma DateTime maps to PostgreSQL timestamp/timestamptz.
       // If schema uses @db.Time, it might expect a Date object where only time matters.
-      specificTimeDate = new Date(`1970-01-01T${dto.specificTime}`); 
+      specificTimeDate = new Date(`1970-01-01T${dto.specificTime}`);
       if (isNaN(specificTimeDate.getTime())) {
           // Try parsing as full ISO
           specificTimeDate = new Date(dto.specificTime);
+      }
+      // Final validation: ensure we have a valid date
+      if (isNaN(specificTimeDate.getTime())) {
+        throw new BadRequestException(`Invalid time format: ${dto.specificTime}. Expected HH:MM or ISO format.`);
       }
     }
 
@@ -162,6 +166,7 @@ export class ActivitiesService {
         a."ageMax",
         a."createdAt",
         a."creatorId",
+        p."fullName" as "creatorName",
         p."avatarUrl" as "creatorAvatar",
         c.id as "conversationId",
         ST_DistanceSphere(
@@ -205,18 +210,25 @@ export class ActivitiesService {
     `);
 
     // Parse specificTime if needed or other transformations
-    return results.map((r) => ({
-      ...r,
-      latitude: r.latitude !== undefined ? Number(r.latitude) : r.latitude,
-      longitude: r.longitude !== undefined ? Number(r.longitude) : r.longitude,
-      distance: r.distance !== undefined ? Number(r.distance) : r.distance,
-      creator: {
-        id: r.creatorId,
-        name: r.creatorName || 'Unknown',
-        avatar: r.creatorAvatar,
-      },
-      participants: [],
-    }));
+    return results.map((r) => {
+      // Convert distance from meters to kilometers for consistency with usersApi
+      const distanceMeters = r.distance !== undefined ? Number(r.distance) : null;
+      const distanceKm = distanceMeters !== null ? Math.round((distanceMeters / 1000) * 10) / 10 : null;
+
+      return {
+        ...r,
+        latitude: r.latitude !== undefined ? Number(r.latitude) : r.latitude,
+        longitude: r.longitude !== undefined ? Number(r.longitude) : r.longitude,
+        distance: distanceKm, // Now in kilometers (number)
+        distanceKm, // Explicit km field for clarity
+        participantCount: r.participantCount ?? 0,
+        creator: {
+          id: r.creatorId,
+          name: r.creatorName || 'Unknown',
+          avatar: r.creatorAvatar,
+        },
+      };
+    });
   }
 
   async findOne(userId: string, activityId: string) {

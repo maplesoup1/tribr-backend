@@ -304,11 +304,12 @@ export class ConnectionsService {
 
   /**
    * Get pending connection requests for a user (where they are the recipient)
+   * Returns normalized response with otherUser field for easier client consumption
    */
   async getPendingRequests(userId: string, take: number = 50, skip: number = 0) {
     const limit = Math.min(take, 100);
 
-    return this.prisma.connection.findMany({
+    const connections = await this.prisma.connection.findMany({
       where: {
         // Logic: I am part of the connection, AND I am NOT the requester
         OR: [
@@ -322,13 +323,32 @@ export class ConnectionsService {
         userARelation: {
           include: { profile: true },
         },
-        userBRelation: { // Need both relations to find "the other person"
+        userBRelation: {
            include: { profile: true }
         }
       },
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip,
+    });
+
+    // Normalize response: determine which user is "the other person" (the requester)
+    return connections.map((conn) => {
+      const isUserA = conn.userA === userId;
+      const otherUserRelation = isUserA ? conn.userBRelation : conn.userARelation;
+
+      return {
+        id: conn.id,
+        status: conn.status,
+        createdAt: conn.createdAt,
+        otherUser: {
+          id: otherUserRelation.id,
+          name: otherUserRelation.profile?.fullName || 'Traveler',
+          avatar: otherUserRelation.profile?.avatarUrl || undefined,
+          city: otherUserRelation.profile?.city || undefined,
+          country: otherUserRelation.profile?.country || undefined,
+        },
+      };
     });
   }
 

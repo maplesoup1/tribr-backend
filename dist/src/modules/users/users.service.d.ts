@@ -54,6 +54,13 @@ export declare class UsersService {
             youtubeUrl: string | null;
             videoIntroUrl: string | null;
         } | null;
+        languages: {
+            id: string;
+            userId: string;
+            language: string;
+            level: import(".prisma/client").$Enums.LanguageProficiency;
+            createdAt: Date;
+        }[];
         badges: ({
             badge: {
                 id: string;
@@ -72,13 +79,6 @@ export declare class UsersService {
             earnedAt: Date;
             progress: number;
         })[];
-        languages: {
-            id: string;
-            userId: string;
-            language: string;
-            level: import(".prisma/client").$Enums.LanguageProficiency;
-            createdAt: Date;
-        }[];
     } & {
         id: string;
         phone: string | null;
@@ -323,12 +323,6 @@ export declare class UsersService {
     }>;
     private calculateTrustScore;
     getDestinationStats(location: string): Promise<{
-        currentCount: number;
-        incomingCount: number;
-        totalCount: number;
-        location?: undefined;
-        trending?: undefined;
-    } | {
         location: string;
         currentCount: number;
         incomingCount: number;

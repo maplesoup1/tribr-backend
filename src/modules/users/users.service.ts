@@ -645,7 +645,15 @@ export class UsersService {
    * Matches against Profile city/country and Journey destinations
    */
   async getDestinationStats(location: string) {
-    if (!location) return { currentCount: 0, incomingCount: 0, totalCount: 0 };
+    if (!location) {
+      return {
+        location: '',
+        currentCount: 0,
+        incomingCount: 0,
+        totalCount: 0,
+        trending: false,
+      };
+    }
 
     // 1. Users currently there (based on Profile city/country)
     // Note: Ideally we would use UserLocation + Geocoding, but text match is a fallback
@@ -660,32 +668,45 @@ export class UsersService {
 
     // 2. Users traveling there soon (Future Journeys)
     const today = new Date();
-    const incomingCount = await this.prisma.journey.count({
+
+    // Get unique user IDs from journeys heading to this destination
+    const incomingJourneys = await this.prisma.journey.findMany({
       where: {
         destination: { contains: location, mode: 'insensitive' },
         startDate: { gte: today },
         status: { in: ['draft', 'active'] },
       },
+      select: { userId: true },
     });
 
-    // Also include JourneyLegs if destination is in legs
-    const incomingLegsCount = await this.prisma.journeyLeg.count({
+    // Get unique user IDs from journey legs heading to this destination
+    const incomingLegs = await this.prisma.journeyLeg.findMany({
       where: {
         destination: { contains: location, mode: 'insensitive' },
         startDate: { gte: today },
       },
+      select: { journey: { select: { userId: true } } },
     });
 
-    // Simple max to avoid double counting if journey & leg match (rough approximation)
-    const finalIncoming = Math.max(incomingCount, incomingLegsCount);
+    // Combine and deduplicate user IDs to get accurate incoming count
+    const incomingUserIds = new Set<string>();
+    incomingJourneys.forEach((j) => incomingUserIds.add(j.userId));
+    incomingLegs.forEach((l) => {
+      if (l.journey?.userId) {
+        incomingUserIds.add(l.journey.userId);
+      }
+    });
+
+    const incomingCount = incomingUserIds.size;
+    const totalCount = currentCount + incomingCount;
 
     return {
       location,
       currentCount,
-      incomingCount: finalIncoming,
-      totalCount: currentCount + finalIncoming,
-      // Mock some activity trend
-      trending: currentCount > 5,
+      incomingCount,
+      totalCount,
+      // Trending if significant activity (current or incoming)
+      trending: totalCount > 5 || incomingCount > 3,
     };
   }
 }

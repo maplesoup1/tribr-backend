@@ -16,6 +16,44 @@ export declare class ChatController {
         updatedAt: Date;
     }>;
     listConversations(req: any): Promise<({
+        participants: ({
+            user: {
+                profile: {
+                    userId: string;
+                    fullName: string | null;
+                    avatarUrl: string | null;
+                    visibility: import(".prisma/client").$Enums.Visibility;
+                    verificationLevel: number;
+                    gender: string | null;
+                    birthDate: Date | null;
+                    city: string | null;
+                    country: string | null;
+                    archetypes: string[];
+                    interests: string[];
+                    travelStyles: string[];
+                    bio: string | null;
+                    username: string | null;
+                    instagramHandle: string | null;
+                    tiktokHandle: string | null;
+                    youtubeUrl: string | null;
+                    videoIntroUrl: string | null;
+                } | null;
+            } & {
+                id: string;
+                phone: string | null;
+                countryCode: string;
+                email: string;
+                onboardingComplete: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+            };
+        } & {
+            conversationId: string;
+            userId: string;
+            role: import(".prisma/client").$Enums.ParticipantRole;
+            lastReadAt: Date | null;
+            joinedAt: Date;
+        })[];
         lastMessage: {
             id: string;
             conversationId: string;
@@ -29,13 +67,6 @@ export declare class ChatController {
             deletedBy: string | null;
             journeyId: string | null;
         } | null;
-        participants: {
-            conversationId: string;
-            userId: string;
-            role: import(".prisma/client").$Enums.ParticipantRole;
-            lastReadAt: Date | null;
-            joinedAt: Date;
-        }[];
     } & {
         id: string;
         type: import(".prisma/client").$Enums.ConversationType;

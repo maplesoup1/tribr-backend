@@ -25,7 +25,13 @@ let ChatService = class ChatService {
                 },
             },
             include: {
-                participants: true,
+                participants: {
+                    include: {
+                        user: {
+                            include: { profile: true },
+                        },
+                    },
+                },
                 lastMessage: true,
             },
             orderBy: { updatedAt: 'desc' },

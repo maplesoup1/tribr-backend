@@ -74,6 +74,13 @@ export declare class UsersController {
             youtubeUrl: string | null;
             videoIntroUrl: string | null;
         } | null;
+        languages: {
+            id: string;
+            userId: string;
+            language: string;
+            level: import(".prisma/client").$Enums.LanguageProficiency;
+            createdAt: Date;
+        }[];
         badges: ({
             badge: {
                 id: string;
@@ -92,13 +99,6 @@ export declare class UsersController {
             earnedAt: Date;
             progress: number;
         })[];
-        languages: {
-            id: string;
-            userId: string;
-            language: string;
-            level: import(".prisma/client").$Enums.LanguageProficiency;
-            createdAt: Date;
-        }[];
     } & {
         id: string;
         phone: string | null;
@@ -192,12 +192,6 @@ export declare class UsersController {
         distance: string;
     }[]>;
     getDestinationStats(location: string): Promise<{
-        currentCount: number;
-        incomingCount: number;
-        totalCount: number;
-        location?: undefined;
-        trending?: undefined;
-    } | {
         location: string;
         currentCount: number;
         incomingCount: number;

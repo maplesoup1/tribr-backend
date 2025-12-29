@@ -448,8 +448,15 @@ let UsersService = class UsersService {
         return Math.min(score, 100);
     }
     async getDestinationStats(location) {
-        if (!location)
-            return { currentCount: 0, incomingCount: 0, totalCount: 0 };
+        if (!location) {
+            return {
+                location: '',
+                currentCount: 0,
+                incomingCount: 0,
+                totalCount: 0,
+                trending: false,
+            };
+        }
         const currentCount = await this.prisma.profile.count({
             where: {
                 OR: [
@@ -459,26 +466,36 @@ let UsersService = class UsersService {
             },
         });
         const today = new Date();
-        const incomingCount = await this.prisma.journey.count({
+        const incomingJourneys = await this.prisma.journey.findMany({
             where: {
                 destination: { contains: location, mode: 'insensitive' },
                 startDate: { gte: today },
                 status: { in: ['draft', 'active'] },
             },
+            select: { userId: true },
         });
-        const incomingLegsCount = await this.prisma.journeyLeg.count({
+        const incomingLegs = await this.prisma.journeyLeg.findMany({
             where: {
                 destination: { contains: location, mode: 'insensitive' },
                 startDate: { gte: today },
             },
+            select: { journey: { select: { userId: true } } },
         });
-        const finalIncoming = Math.max(incomingCount, incomingLegsCount);
+        const incomingUserIds = new Set();
+        incomingJourneys.forEach((j) => incomingUserIds.add(j.userId));
+        incomingLegs.forEach((l) => {
+            if (l.journey?.userId) {
+                incomingUserIds.add(l.journey.userId);
+            }
+        });
+        const incomingCount = incomingUserIds.size;
+        const totalCount = currentCount + incomingCount;
         return {
             location,
             currentCount,
-            incomingCount: finalIncoming,
-            totalCount: currentCount + finalIncoming,
-            trending: currentCount > 5,
+            incomingCount,
+            totalCount,
+            trending: totalCount > 5 || incomingCount > 3,
         };
     }
 };

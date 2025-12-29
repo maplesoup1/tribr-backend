@@ -210,7 +210,7 @@ let ConnectionsService = class ConnectionsService {
     }
     async getPendingRequests(userId, take = 50, skip = 0) {
         const limit = Math.min(take, 100);
-        return this.prisma.connection.findMany({
+        const connections = await this.prisma.connection.findMany({
             where: {
                 OR: [
                     { userA: userId },
@@ -230,6 +230,22 @@ let ConnectionsService = class ConnectionsService {
             orderBy: { createdAt: 'desc' },
             take: limit,
             skip,
+        });
+        return connections.map((conn) => {
+            const isUserA = conn.userA === userId;
+            const otherUserRelation = isUserA ? conn.userBRelation : conn.userARelation;
+            return {
+                id: conn.id,
+                status: conn.status,
+                createdAt: conn.createdAt,
+                otherUser: {
+                    id: otherUserRelation.id,
+                    name: otherUserRelation.profile?.fullName || 'Traveler',
+                    avatar: otherUserRelation.profile?.avatarUrl || undefined,
+                    city: otherUserRelation.profile?.city || undefined,
+                    country: otherUserRelation.profile?.country || undefined,
+                },
+            };
         });
     }
     async remove(id, currentUserId) {

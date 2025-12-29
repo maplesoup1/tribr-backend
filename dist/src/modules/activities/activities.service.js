@@ -47,6 +47,9 @@ let ActivitiesService = class ActivitiesService {
             if (isNaN(specificTimeDate.getTime())) {
                 specificTimeDate = new Date(dto.specificTime);
             }
+            if (isNaN(specificTimeDate.getTime())) {
+                throw new common_1.BadRequestException(`Invalid time format: ${dto.specificTime}. Expected HH:MM or ISO format.`);
+            }
         }
         const activity = await this.prisma.activity.create({
             data: {
@@ -116,6 +119,7 @@ let ActivitiesService = class ActivitiesService {
         a."ageMax",
         a."createdAt",
         a."creatorId",
+        p."fullName" as "creatorName",
         p."avatarUrl" as "creatorAvatar",
         c.id as "conversationId",
         ST_DistanceSphere(
@@ -157,18 +161,23 @@ let ActivitiesService = class ActivitiesService {
       ORDER BY distance ASC
       LIMIT ${limit} OFFSET ${offset}
     `);
-        return results.map((r) => ({
-            ...r,
-            latitude: r.latitude !== undefined ? Number(r.latitude) : r.latitude,
-            longitude: r.longitude !== undefined ? Number(r.longitude) : r.longitude,
-            distance: r.distance !== undefined ? Number(r.distance) : r.distance,
-            creator: {
-                id: r.creatorId,
-                name: r.creatorName || 'Unknown',
-                avatar: r.creatorAvatar,
-            },
-            participants: [],
-        }));
+        return results.map((r) => {
+            const distanceMeters = r.distance !== undefined ? Number(r.distance) : null;
+            const distanceKm = distanceMeters !== null ? Math.round((distanceMeters / 1000) * 10) / 10 : null;
+            return {
+                ...r,
+                latitude: r.latitude !== undefined ? Number(r.latitude) : r.latitude,
+                longitude: r.longitude !== undefined ? Number(r.longitude) : r.longitude,
+                distance: distanceKm,
+                distanceKm,
+                participantCount: r.participantCount ?? 0,
+                creator: {
+                    id: r.creatorId,
+                    name: r.creatorName || 'Unknown',
+                    avatar: r.creatorAvatar,
+                },
+            };
+        });
     }
     async findOne(userId, activityId) {
         const activity = await this.prisma.activity.findUnique({
