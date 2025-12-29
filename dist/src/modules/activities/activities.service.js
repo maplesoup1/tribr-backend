@@ -67,29 +67,31 @@ let ActivitiesService = class ActivitiesService {
                 status: client_2.ActivityStatus.active,
             },
         });
-        await this.prisma.$executeRaw `
-      UPDATE activities
-      SET location = ST_SetSRID(ST_MakePoint(${dto.longitude}, ${dto.latitude}), 4326)::geography
-      WHERE id = ${activity.id}
-    `;
-        await this.prisma.activityParticipant.create({
-            data: {
+        const [_, __, conversation] = await Promise.all([
+            this.prisma.$executeRaw `
+        UPDATE activities
+        SET location = ST_SetSRID(ST_MakePoint(${dto.longitude}, ${dto.latitude}), 4326)::geography
+        WHERE id = ${activity.id}
+      `,
+            this.prisma.activityParticipant.create({
+                data: {
+                    activityId: activity.id,
+                    userId,
+                    role: client_2.ActivityParticipantRole.host,
+                    status: client_2.ActivityParticipantStatus.joined,
+                },
+            }).catch((err) => {
+                if (err?.code !== 'P2002') {
+                    throw err;
+                }
+            }),
+            this.chatService.createConversation(userId, [], 'group', dto.description || 'Activity Chat', {
                 activityId: activity.id,
-                userId,
-                role: client_2.ActivityParticipantRole.host,
-                status: client_2.ActivityParticipantStatus.joined,
-            },
-        }).catch((err) => {
-            if (err?.code !== 'P2002') {
-                throw err;
-            }
-        });
-        const conversation = await this.chatService.createConversation(userId, [], 'group', dto.description || 'Activity Chat', {
-            activityId: activity.id,
-            activityTitle: dto.description,
-            activityEmoji: dto.emoji,
-            activityLocation: dto.locationText,
-        });
+                activityTitle: dto.description,
+                activityEmoji: dto.emoji,
+                activityLocation: dto.locationText,
+            })
+        ]);
         const activityWithDetails = await this.findOne(userId, activity.id);
         return {
             ...activityWithDetails,

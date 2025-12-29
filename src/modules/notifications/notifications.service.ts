@@ -19,6 +19,23 @@ export interface CreateNotificationDto {
   };
 }
 
+export interface NoticeboardUpdate {
+  id: string;
+  type: 'meetup' | 'heading' | 'arrived';
+  name: string;
+  location: string;
+  area: string;
+  timeAgo: string;
+  dateInfo: string;
+  participants?: number;
+  createdAt: Date;
+  user: {
+    id: string;
+    name: string;
+    avatar?: string | null;
+  };
+}
+
 @Injectable()
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -73,6 +90,112 @@ export class NotificationsService {
         isRead: false,
       },
     });
+  }
+
+  /**
+   * Get noticeboard updates (aggregated feed of network activity)
+   */
+  async getNoticeboard(userId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const updates: NoticeboardUpdate[] = [];
+
+    // 1. Get recent activities (meetups)
+    // For now, get global recent public activities. In future, filter by location/network.
+    const recentActivities = await this.prisma.activity.findMany({
+      where: {
+        privacy: 'open',
+        status: 'active',
+        date: {
+          gte: today, // Upcoming (including today)
+        },
+      },
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            profile: {
+              select: {
+                fullName: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+        participants: true,
+      },
+    });
+
+    // 2. Get recent journeys (heading to / arrived)
+    const recentJourneys = await this.prisma.journey.findMany({
+      where: {
+        status: { in: ['active', 'draft'] }, // Simplified
+        // Include own journeys for now so single-user dev environments still see updates.
+        destination: { not: null },
+      },
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            profile: {
+              select: {
+                fullName: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // 3. Transform and merge
+    // Map Activities to "meetup"
+    for (const activity of recentActivities) {
+      updates.push({
+        id: `act_${activity.id}`,
+        type: 'meetup',
+        name: activity.description || 'Group Meetup',
+        location: activity.locationText || 'Unknown Location',
+        area: activity.locationText?.split(',')[0] || 'Nearby',
+        timeAgo: 'Just now', // Simplified for demo, frontend calculates usually
+        dateInfo: activity.date.toISOString().split('T')[0],
+        participants: activity.participants.length,
+        createdAt: activity.createdAt,
+        user: {
+          id: activity.creator.id,
+          name: activity.creator.profile?.fullName || 'Tribr User',
+          avatar: activity.creator.profile?.avatarUrl,
+        },
+      });
+    }
+
+    // Map Journeys to "heading" or "arrived"
+    for (const journey of recentJourneys) {
+      const isArrived = journey.startDate && new Date(journey.startDate) <= new Date();
+      updates.push({
+        id: `jny_${journey.id}`,
+        type: isArrived ? 'arrived' : 'heading',
+        name: journey.user.profile?.fullName || 'Tribr User',
+        location: journey.destination || 'Unknown',
+        area: journey.destination?.split(',')[0] || 'Unknown',
+        timeAgo: 'Recently',
+        dateInfo: journey.startDate ? new Date(journey.startDate).toDateString() : 'Soon',
+        createdAt: journey.createdAt,
+        user: {
+          id: journey.user.id,
+          name: journey.user.profile?.fullName || 'Tribr User',
+          avatar: journey.user.profile?.avatarUrl,
+        },
+      });
+    }
+
+    // Sort by createdAt desc
+    return updates.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   /**

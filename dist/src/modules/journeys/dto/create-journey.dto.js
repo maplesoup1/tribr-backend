@@ -19,6 +19,7 @@ class CreateJourneyDto {
     startDate;
     endDate;
     tripType;
+    transport;
     title;
     description;
     status;
@@ -55,6 +56,11 @@ __decorate([
     (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], CreateJourneyDto.prototype, "tripType", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(client_1.TransportMode),
+    __metadata("design:type", String)
+], CreateJourneyDto.prototype, "transport", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

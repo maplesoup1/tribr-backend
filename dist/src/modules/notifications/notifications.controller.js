@@ -21,6 +21,9 @@ let NotificationsController = class NotificationsController {
     constructor(notificationsService) {
         this.notificationsService = notificationsService;
     }
+    async getNoticeboard(req) {
+        return this.notificationsService.getNoticeboard(req.user.id);
+    }
     async findAll(req, take, skip, unreadOnly) {
         return this.notificationsService.findAllByUser(req.user.id, {
             take: take ? parseInt(take, 10) : undefined,
@@ -47,6 +50,13 @@ let NotificationsController = class NotificationsController {
 };
 exports.NotificationsController = NotificationsController;
 __decorate([
+    (0, common_1.Get)('noticeboard'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], NotificationsController.prototype, "getNoticeboard", null);
+__decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Query)('take')),
@@ -57,6 +67,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], NotificationsController.prototype, "findAll", null);
 __decorate([
+    (0, common_1.Get)('noticeboard'),
     (0, common_1.Get)('unread-count'),
     __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),

@@ -11,6 +11,6 @@ export default () => ({
     jwtSecret: process.env.SUPABASE_JWT_SECRET,
   },
   google: {
-    placesApiKey: process.env.GOOGLE_PLACES_API_KEY,
+    placesApiKey: process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY,
   },
 });

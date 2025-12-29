@@ -6,7 +6,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { JourneyStatus } from '@prisma/client';
+import { JourneyStatus, TransportMode } from '@prisma/client';
 
 export class CreateJourneyDto {
   // userId is determined from authenticated user - not client input
@@ -36,6 +36,10 @@ export class CreateJourneyDto {
   @MaxLength(50)
   @Transform(({ value }) => value?.trim())
   tripType?: string;
+
+  @IsOptional()
+  @IsEnum(TransportMode)
+  transport?: TransportMode;
 
   @IsOptional()
   @IsString()

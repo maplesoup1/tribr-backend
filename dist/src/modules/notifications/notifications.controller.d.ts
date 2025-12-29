@@ -2,6 +2,7 @@ import { NotificationsService } from './notifications.service';
 export declare class NotificationsController {
     private readonly notificationsService;
     constructor(notificationsService: NotificationsService);
+    getNoticeboard(req: any): Promise<import("./notifications.service").NoticeboardUpdate[]>;
     findAll(req: any, take?: string, skip?: string, unreadOnly?: string): Promise<{
         id: string;
         userId: string;

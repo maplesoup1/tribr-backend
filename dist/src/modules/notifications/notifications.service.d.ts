@@ -16,6 +16,22 @@ export interface CreateNotificationDto {
         fromUserAvatar?: string;
     };
 }
+export interface NoticeboardUpdate {
+    id: string;
+    type: 'meetup' | 'heading' | 'arrived';
+    name: string;
+    location: string;
+    area: string;
+    timeAgo: string;
+    dateInfo: string;
+    participants?: number;
+    createdAt: Date;
+    user: {
+        id: string;
+        name: string;
+        avatar?: string | null;
+    };
+}
 export declare class NotificationsService {
     private readonly prisma;
     constructor(prisma: PrismaService);
@@ -46,6 +62,7 @@ export declare class NotificationsService {
         readAt: Date | null;
     }[]>;
     getUnreadCount(userId: string): Promise<number>;
+    getNoticeboard(userId: string): Promise<NoticeboardUpdate[]>;
     markAsRead(id: string, userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
     markAllAsRead(userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
     delete(id: string, userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;

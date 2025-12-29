@@ -91,40 +91,43 @@ export class ActivitiesService {
       },
     });
 
-    // Update Geo Location
-    await this.prisma.$executeRaw`
-      UPDATE activities
-      SET location = ST_SetSRID(ST_MakePoint(${dto.longitude}, ${dto.latitude}), 4326)::geography
-      WHERE id = ${activity.id}
-    `;
+    // Run independent operations in parallel
+    const [_, __, conversation] = await Promise.all([
+      // 1. Update Geo Location
+      this.prisma.$executeRaw`
+        UPDATE activities
+        SET location = ST_SetSRID(ST_MakePoint(${dto.longitude}, ${dto.latitude}), 4326)::geography
+        WHERE id = ${activity.id}
+      `,
 
-    // Ensure creator is recorded as host participant
-    await this.prisma.activityParticipant.create({
-      data: {
-        activityId: activity.id,
+      // 2. Ensure creator is recorded as host participant
+      this.prisma.activityParticipant.create({
+        data: {
+          activityId: activity.id,
+          userId,
+          role: ActivityParticipantRole.host,
+          status: ActivityParticipantStatus.joined,
+        },
+      }).catch((err: any) => {
+        if (err?.code !== 'P2002') {
+          throw err;
+        }
+      }),
+
+      // 3. Create group conversation tied to this activity
+      this.chatService.createConversation(
         userId,
-        role: ActivityParticipantRole.host,
-        status: ActivityParticipantStatus.joined,
-      },
-    }).catch((err: any) => {
-      if (err?.code !== 'P2002') {
-        throw err;
-      }
-    });
-
-    // Create group conversation tied to this activity
-    const conversation = await this.chatService.createConversation(
-      userId,
-      [],
-      'group',
-      dto.description || 'Activity Chat',
-      {
-        activityId: activity.id,
-        activityTitle: dto.description,
-        activityEmoji: dto.emoji,
-        activityLocation: dto.locationText,
-      },
-    );
+        [],
+        'group',
+        dto.description || 'Activity Chat',
+        {
+          activityId: activity.id,
+          activityTitle: dto.description,
+          activityEmoji: dto.emoji,
+          activityLocation: dto.locationText,
+        },
+      )
+    ]);
 
     const activityWithDetails = await this.findOne(userId, activity.id);
     return {

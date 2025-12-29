@@ -281,6 +281,7 @@ model Journey {
   startDate   DateTime?      @db.Date
   endDate     DateTime?      @db.Date
   tripType    String?
+  transport   TransportMode?
   title       String?
   description String?        @db.Text
   status      JourneyStatus  @default(draft)

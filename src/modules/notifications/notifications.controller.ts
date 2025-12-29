@@ -16,6 +16,15 @@ import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
+  /**
+   * Aggregated "noticeboard" feed (activities + journeys)
+   * GET /notifications/noticeboard
+   */
+  @Get('noticeboard')
+  async getNoticeboard(@Request() req) {
+    return this.notificationsService.getNoticeboard(req.user.id);
+  }
+
   @Get()
   async findAll(
     @Request() req,
@@ -30,6 +39,7 @@ export class NotificationsController {
     });
   }
 
+  @Get('noticeboard')
   @Get('unread-count')
   async getUnreadCount(@Request() req) {
     const count = await this.notificationsService.getUnreadCount(req.user.id);

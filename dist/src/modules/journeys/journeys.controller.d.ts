@@ -14,6 +14,7 @@ export declare class JourneysController {
         startDate: Date | null;
         endDate: Date | null;
         tripType: string | null;
+        transport: import(".prisma/client").$Enums.TransportMode | null;
         title: string | null;
         description: string | null;
         status: import(".prisma/client").$Enums.JourneyStatus;
@@ -29,6 +30,7 @@ export declare class JourneysController {
         startDate: Date | null;
         endDate: Date | null;
         tripType: string | null;
+        transport: import(".prisma/client").$Enums.TransportMode | null;
         title: string | null;
         description: string | null;
         status: import(".prisma/client").$Enums.JourneyStatus;
@@ -75,6 +77,7 @@ export declare class JourneysController {
         startDate: Date | null;
         endDate: Date | null;
         tripType: string | null;
+        transport: import(".prisma/client").$Enums.TransportMode | null;
         title: string | null;
         description: string | null;
         status: import(".prisma/client").$Enums.JourneyStatus;
@@ -90,6 +93,7 @@ export declare class JourneysController {
         startDate: Date | null;
         endDate: Date | null;
         tripType: string | null;
+        transport: import(".prisma/client").$Enums.TransportMode | null;
         title: string | null;
         description: string | null;
         status: import(".prisma/client").$Enums.JourneyStatus;
@@ -105,6 +109,7 @@ export declare class JourneysController {
         startDate: Date | null;
         endDate: Date | null;
         tripType: string | null;
+        transport: import(".prisma/client").$Enums.TransportMode | null;
         title: string | null;
         description: string | null;
         status: import(".prisma/client").$Enums.JourneyStatus;

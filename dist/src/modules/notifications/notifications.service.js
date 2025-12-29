@@ -50,6 +50,94 @@ let NotificationsService = class NotificationsService {
             },
         });
     }
+    async getNoticeboard(userId) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const updates = [];
+        const recentActivities = await this.prisma.activity.findMany({
+            where: {
+                privacy: 'open',
+                status: 'active',
+                date: {
+                    gte: today,
+                },
+            },
+            take: 10,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                creator: {
+                    select: {
+                        id: true,
+                        profile: {
+                            select: {
+                                fullName: true,
+                                avatarUrl: true,
+                            },
+                        },
+                    },
+                },
+                participants: true,
+            },
+        });
+        const recentJourneys = await this.prisma.journey.findMany({
+            where: {
+                status: { in: ['active', 'draft'] },
+                destination: { not: null },
+            },
+            take: 10,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        profile: {
+                            select: {
+                                fullName: true,
+                                avatarUrl: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        for (const activity of recentActivities) {
+            updates.push({
+                id: `act_${activity.id}`,
+                type: 'meetup',
+                name: activity.description || 'Group Meetup',
+                location: activity.locationText || 'Unknown Location',
+                area: activity.locationText?.split(',')[0] || 'Nearby',
+                timeAgo: 'Just now',
+                dateInfo: activity.date.toISOString().split('T')[0],
+                participants: activity.participants.length,
+                createdAt: activity.createdAt,
+                user: {
+                    id: activity.creator.id,
+                    name: activity.creator.profile?.fullName || 'Tribr User',
+                    avatar: activity.creator.profile?.avatarUrl,
+                },
+            });
+        }
+        for (const journey of recentJourneys) {
+            const isArrived = journey.startDate && new Date(journey.startDate) <= new Date();
+            updates.push({
+                id: `jny_${journey.id}`,
+                type: isArrived ? 'arrived' : 'heading',
+                name: journey.user.profile?.fullName || 'Tribr User',
+                location: journey.destination || 'Unknown',
+                area: journey.destination?.split(',')[0] || 'Unknown',
+                timeAgo: 'Recently',
+                dateInfo: journey.startDate ? new Date(journey.startDate).toDateString() : 'Soon',
+                createdAt: journey.createdAt,
+                user: {
+                    id: journey.user.id,
+                    name: journey.user.profile?.fullName || 'Tribr User',
+                    avatar: journey.user.profile?.avatarUrl,
+                },
+            });
+        }
+        return updates.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    }
     async markAsRead(id, userId) {
         return this.prisma.notification.updateMany({
             where: {
