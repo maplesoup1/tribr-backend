@@ -28,7 +28,7 @@ export class ConnectionsController {
 
   @Post()
   async create(@Request() req, @Body() dto: CreateConnectionDto) {
-    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.connectionsService.create(currentUser.id, dto);
   }
 
@@ -39,7 +39,7 @@ export class ConnectionsController {
     @Query('take') take?: number,
     @Query('skip') skip?: number,
   ) {
-    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.connectionsService.listByUser(
       currentUser.id,
       status,
@@ -57,13 +57,13 @@ export class ConnectionsController {
     if (!dto.status) {
       throw new BadRequestException('status field is required');
     }
-    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.connectionsService.updateStatus(id, dto.status, currentUser.id);
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string, @Request() req) {
-    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.connectionsService.remove(id, currentUser.id);
   }
 }

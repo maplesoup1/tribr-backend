@@ -21,6 +21,7 @@ export const CurrentUser = createParamDecorator(
       request.currentUser = await usersService.getOrCreateFromFirebaseUser({
         uid: request.user.id,
         email: request.user.email,
+        phoneNumber: request.user.phoneNumber,
       });
       return request.currentUser;
     }

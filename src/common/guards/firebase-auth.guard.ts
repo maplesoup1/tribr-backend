@@ -34,6 +34,7 @@ export class FirebaseAuthGuard implements CanActivate {
       request.user = {
         id: userId,
         email: decodedToken.email,
+        phoneNumber: decodedToken.phone_number,
         emailVerified: decodedToken.email_verified,
         name: decodedToken.name,
         picture: decodedToken.picture,

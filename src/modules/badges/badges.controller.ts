@@ -45,7 +45,7 @@ export class BadgesController {
   @Get('me')
   @UseGuards(FirebaseAuthGuard)
   async getMyBadges(@Request() req) {
-    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.badgesService.getUserBadges(user.id);
   }
 
@@ -56,7 +56,7 @@ export class BadgesController {
   @Get('me/stats')
   @UseGuards(FirebaseAuthGuard)
   async getMyBadgeStats(@Request() req) {
-    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.badgesService.getUserBadgeStats(user.id);
   }
 
@@ -70,7 +70,7 @@ export class BadgesController {
     @Request() req,
     @Query('category') category?: BadgeCategory,
   ) {
-    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.badgesService.getAllBadgesWithUserProgress(user.id, category);
   }
 
@@ -98,7 +98,7 @@ export class BadgesController {
     @Param('code') code: string,
     @Body('progress') progress: number,
   ) {
-    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.badgesService.updateProgress(user.id, code, progress);
   }
 }

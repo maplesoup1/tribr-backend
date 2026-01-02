@@ -27,7 +27,7 @@ export class UsersController {
 
   @Get('me')
   async getCurrentUser(@Request() req) {
-    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.usersService.getProfileWithStats(user.id);
   }
 
@@ -36,7 +36,7 @@ export class UsersController {
     @Request() req,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.usersService.update(user.id, updateUserDto);
   }
 
@@ -62,7 +62,7 @@ export class UsersController {
       throw new BadRequestException('File size must be less than 5MB');
     }
 
-    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.usersService.uploadAvatar(user.id, file);
   }
 
@@ -71,7 +71,7 @@ export class UsersController {
     @Request() req,
     @Body() updateLocationDto: UpdateLocationDto,
   ) {
-    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.usersService.updateLocation(
       user.id,
       updateLocationDto.latitude,
@@ -102,13 +102,13 @@ export class UsersController {
       throw new BadRequestException('File size must be less than 50MB');
     }
 
-    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.usersService.uploadVideo(user.id, file);
   }
 
   @Get('nearby')
   async getNearby(@Request() req, @Query() query: NearbyQueryDto) {
-    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.usersService.findNearby(
       user.id,
       query.latitude,

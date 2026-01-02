@@ -26,7 +26,7 @@ export class JourneysController {
 
   @Post()
   async create(@Request() req, @Body() dto: CreateJourneyDto) {
-    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.journeysService.create(currentUser.id, dto);
   }
 
@@ -37,7 +37,7 @@ export class JourneysController {
     @Query('take') take?: number,
     @Query('skip') skip?: number,
   ) {
-    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.journeysService.findVisibleForUser(
       currentUser.id,
       scope,
@@ -48,7 +48,7 @@ export class JourneysController {
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Request() req) {
-    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.journeysService.findOne(id, currentUser.id);
   }
 
@@ -58,13 +58,13 @@ export class JourneysController {
     @Body() dto: UpdateJourneyDto,
     @Request() req,
   ) {
-    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.journeysService.update(id, dto, currentUser.id);
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string, @Request() req) {
-    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
+    const currentUser = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email, phoneNumber: req.user.phoneNumber });
     return this.journeysService.remove(id, currentUser.id);
   }
 }
