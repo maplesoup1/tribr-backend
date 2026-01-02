@@ -6,10 +6,10 @@ import {
 } from '@nestjs/common';
 import { GeocodingService } from './geocoding.service';
 import { SearchLocationDto, PlaceDetailsDto } from './dto/search-location.dto';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { FirebaseAuthGuard } from '../../common/guards/firebase-auth.guard';
 
 @Controller('geocoding')
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(FirebaseAuthGuard)
 export class GeocodingController {
   constructor(private readonly geocodingService: GeocodingService) {}
 

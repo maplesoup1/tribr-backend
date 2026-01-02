@@ -1,42 +1,43 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SignUpDto } from './dto/sign-up.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
-import { ResendOtpDto } from './dto/resend-otp.dto';
-import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
+
+class SyncUserDto {
+  idToken: string;
+}
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('signup')
+  /**
+   * Sync user after Firebase client-side authentication
+   * Client sends Firebase ID token, backend verifies and creates/updates local user
+   */
+  @Post('sync')
   @HttpCode(HttpStatus.OK)
-  async signUp(@Body() signUpDto: SignUpDto) {
-    return this.authService.signUpWithOtp(signUpDto);
+  async syncUser(@Body() dto: SyncUserDto) {
+    return this.authService.verifyAndSyncUser(dto.idToken);
   }
 
-  @Post('verify-otp')
+  /**
+   * Get current user info
+   */
+  @Get('me')
   @HttpCode(HttpStatus.OK)
-  async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-    return this.authService.verifyOtp(verifyOtpDto);
-  }
-
-  @Post('resend-otp')
-  @HttpCode(HttpStatus.OK)
-  async resendOtp(@Body() dto: ResendOtpDto) {
-    return this.authService.resendOtp(dto.email);
-  }
-
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
-  }
-
-  @Post('refresh')
-  @HttpCode(HttpStatus.OK)
-  async refresh(@Body() dto: RefreshTokenDto) {
-    return this.authService.refreshToken(dto.refreshToken);
+  async getCurrentUser(@Headers('authorization') authHeader: string) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Missing authorization header');
+    }
+    const token = authHeader.substring(7);
+    return this.authService.getCurrentUser(token);
   }
 }

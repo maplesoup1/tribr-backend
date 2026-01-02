@@ -145,15 +145,11 @@ ORDER BY table_name;
 -- 2. Verify PostGIS
 SELECT PostGIS_version();
 
--- 3. Check Realtime (should see 5 tables)
-SELECT tablename FROM pg_publication_tables
-WHERE pubname = 'supabase_realtime';
-
--- 4. Verify RLS enabled (should see 8 tables)
+-- 3. Verify RLS enabled (should see 8 tables)
 SELECT tablename FROM pg_tables
 WHERE schemaname = 'public' AND rowsecurity = true;
 
--- 5. Check triggers (should see 3)
+-- 4. Check triggers (should see 3)
 SELECT trigger_name, event_object_table
 FROM information_schema.triggers
 WHERE trigger_schema = 'public';

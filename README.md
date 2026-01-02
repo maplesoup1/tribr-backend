@@ -28,7 +28,7 @@ tribr-backend/
 ├── src/
 │   ├── common/
 │   │   └── guards/
-│   │       └── supabase-auth.guard.ts  # JWT verification guard
+│   │       └── firebase-auth.guard.ts  # JWT verification guard
 │   ├── config/
 │   │   └── config.ts          # Environment config
 │   ├── modules/
@@ -40,9 +40,9 @@ tribr-backend/
 │   ├── prisma/
 │   │   ├── prisma.module.ts   # Prisma global module
 │   │   └── prisma.service.ts  # Prisma client service
-│   ├── supabase/
-│   │   ├── supabase.module.ts # Supabase global module
-│   │   └── supabase.service.ts # Supabase client wrapper
+│   ├── storage/
+│   │   ├── storage.module.ts # GCS global module
+│   │   └── storage.service.ts # GCS client wrapper
 │   ├── app.module.ts          # Root module
 │   └── main.ts                # Entry point
 └── README.md
@@ -86,7 +86,7 @@ model User {
 #### Get Current User
 ```http
 GET /users/me
-Authorization: Bearer <supabase-jwt-token>
+Authorization: Bearer <firebase-id-token>
 ```
 
 Returns the current user's profile. Creates user in database if first login.
@@ -112,7 +112,7 @@ Returns the current user's profile. Creates user in database if first login.
 #### Update Current User
 ```http
 PATCH /users/me
-Authorization: Bearer <supabase-jwt-token>
+Authorization: Bearer <firebase-id-token>
 Content-Type: application/json
 
 {
@@ -129,25 +129,26 @@ Updates the current user's profile information.
 
 ### 1. Environment Variables
 
-Copy `.env` and fill in your Supabase credentials:
+Copy `.env` and fill in your database + Firebase + GCS credentials:
 
 ```bash
 # Database
-DATABASE_URL="postgresql://postgres.xxx:password@xxx.pooler.supabase.com:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres.xxx:password@xxx.pooler.supabase.com:5432/postgres"
+DATABASE_URL="postgresql://<user>:<pass>@<host>:<port>/<db>?pgbouncer=true"
+DIRECT_URL="postgresql://<user>:<pass>@<host>:<port>/<db>"
 
-# Supabase Auth
-SUPABASE_URL="https://xxx.supabase.co"
-SUPABASE_ANON_KEY="your-actual-anon-key"
-SUPABASE_SERVICE_ROLE_KEY="your-actual-service-role-key"
-SUPABASE_JWT_SECRET="your-actual-jwt-secret"
+# Firebase Admin
+FIREBASE_SERVICE_ACCOUNT_PATH="./secrets/firebase-admin-backend.json"
+
+# Google Cloud Storage buckets
+GCS_AVATARS_BUCKET="tribr-avatars"
+GCS_PROFILE_VIDEOS_BUCKET="tribr-profile-videos"
+GCS_WALLET_DOCUMENTS_BUCKET="wallet-documents"
 
 # App
 PORT=3000
 NODE_ENV="development"
+JWT_SECRET="change-me"
 ```
-
-**Get Supabase credentials from**: https://supabase.com/dashboard/project/_/settings/api
 
 ### 2. Install Dependencies
 

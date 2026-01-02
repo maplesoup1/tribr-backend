@@ -5,7 +5,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
-import { SupabaseModule } from './supabase/supabase.module';
+import { FirebaseModule } from './firebase/firebase.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ConnectionsModule } from './modules/connections/connections.module';
@@ -16,6 +16,7 @@ import { ActivitiesModule } from './modules/activities/activities.module';
 import { TravelWalletModule } from './modules/travel-wallet/travel-wallet.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { GeocodingModule } from './modules/geocoding/geocoding.module';
+import { StorageModule } from './storage/storage.module';
 import configuration from './config/config';
 
 @Module({
@@ -31,7 +32,8 @@ import configuration from './config/config';
       },
     ]),
     PrismaModule,
-    SupabaseModule,
+    FirebaseModule,
+    StorageModule,
     AuthModule,
     UsersModule,
     ConnectionsModule,

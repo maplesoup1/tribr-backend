@@ -15,12 +15,13 @@ export const CurrentUser = createParamDecorator(
       return request.currentUser;
     }
 
-    // Resolve and cache user from Supabase auth data
+    // Resolve and cache user from Firebase auth data
     if (request.user) {
       const usersService = request.app.get(UsersService);
-      request.currentUser = await usersService.getOrCreateFromSupabaseUser(
-        request.user,
-      );
+      request.currentUser = await usersService.getOrCreateFromFirebaseUser({
+        uid: request.user.id,
+        email: request.user.email,
+      });
       return request.currentUser;
     }
 

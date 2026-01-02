@@ -13,9 +13,9 @@ import {
 import { ActivitiesService } from './activities.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { ActivityQueryDto } from './dto/activity-query.dto';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { FirebaseAuthGuard } from '../../common/guards/firebase-auth.guard';
 
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(FirebaseAuthGuard)
 @Controller('activities')
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}

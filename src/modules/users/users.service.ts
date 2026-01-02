@@ -6,14 +6,14 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SupabaseService } from '../../supabase/supabase.service';
+import { StorageService } from '../../storage/storage.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly supabaseService: SupabaseService,
+    private readonly storageService: StorageService,
   ) {}
 
   /**
@@ -244,62 +244,87 @@ export class UsersService {
   /**
    * Resolve internal user from Supabase user payload, create if missing.
    * Uses Supabase Auth UID as the user ID for consistency.
+   * @deprecated Use getOrCreateFromFirebaseUser instead
    */
-  async getOrCreateFromSupabaseUser(supabaseUser: any) {
-    const email = supabaseUser?.email;
-    const authUid = supabaseUser?.id || supabaseUser?.sub;
+  // Legacy Supabase handler removed.
 
-    if (!email) {
-      throw new BadRequestException('Email is required from Supabase user');
+  /**
+   * Resolve internal user from Firebase user payload, create if missing.
+   * Uses Firebase Auth UID as the user ID for consistency.
+   * Supports both email and phone-only users.
+   */
+  async getOrCreateFromFirebaseUser(firebaseUser: {
+    uid: string;
+    email?: string | null;
+    phoneNumber?: string | null;
+    displayName?: string | null;
+    photoURL?: string | null;
+    emailVerified?: boolean | null;
+  }) {
+    const { uid, phoneNumber, displayName, photoURL } = firebaseUser;
+
+    if (!uid) {
+      throw new BadRequestException('UID is required from Firebase user');
     }
 
-    if (!authUid) {
-      throw new BadRequestException('User ID is required from Supabase user');
-    }
-
-    const phone = this.normalizePhone(supabaseUser?.phone);
-    const fullName = supabaseUser?.user_metadata?.full_name;
+    // Generate a stable fallback email for phone-only users to satisfy DB constraints.
+    const normalizedEmail =
+      firebaseUser.email || `phone_${uid}@tribr.local`;
 
     // Fast path: if user already exists, return without doing any writes
     const existing = await this.prisma.user.findUnique({
-      where: { id: authUid },
+      where: { id: uid },
       include: { profile: true },
     });
     if (existing) {
       return existing;
     }
 
-    // Fallback: create/upsert user once (handles migration from old IDs)
+    // Create/upsert user with Firebase UID
     return this.upsertUserWithId({
-      id: authUid,
-      phone,
-      email,
-      fullName,
+      id: uid,
+      email: normalizedEmail,
+      phone: phoneNumber || undefined,
+      fullName: displayName || undefined,
+      photoUrl: photoURL || undefined,
     });
   }
 
   /**
-   * Upsert user with explicit ID (used when we want to match Supabase Auth UID)
+   * Upsert user with explicit ID (used when we want to match Auth UID)
+   * Supports both email-based and phone-based users.
    */
   private async upsertUserWithId(data: {
     id: string;
-    email: string;
+    email?: string;
     phone?: string;
     countryCode?: string;
     fullName?: string;
+    photoUrl?: string;
   }) {
     const phone = this.normalizePhone(data.phone);
 
-    // Try to find by ID first, then by email
+    // Try to find by ID first
     const existingById = await this.prisma.user.findUnique({
       where: { id: data.id },
     });
 
-    const existingByEmail = await this.prisma.user.findUnique({
-      where: { email: data.email },
-    });
+    // Try to find by email if provided
+    const existingByEmail = data.email
+      ? await this.prisma.user.findUnique({ where: { email: data.email } })
+      : null;
 
-    let user: { id: string; email: string; phone: string | null; countryCode: string };
+    // Try to find by phone if provided
+    const existingByPhone = phone
+      ? await this.prisma.user.findUnique({ where: { phone } })
+      : null;
+
+    let user: {
+      id: string;
+      email: string | null;
+      phone: string | null;
+      countryCode: string;
+    };
 
     if (existingById) {
       // User exists with this ID, update it
@@ -307,6 +332,7 @@ export class UsersService {
         where: { id: data.id },
         data: {
           ...(phone !== undefined && { phone }),
+          ...(data.email !== undefined && { email: data.email }),
           ...(data.countryCode && { countryCode: data.countryCode }),
         },
       });
@@ -321,12 +347,22 @@ export class UsersService {
           ...(data.countryCode && { countryCode: data.countryCode }),
         },
       });
+    } else if (existingByPhone) {
+      // User exists with this phone but different ID - update the ID
+      user = await this.prisma.user.update({
+        where: { phone },
+        data: {
+          id: data.id,
+          ...(data.email !== undefined && { email: data.email }),
+          ...(data.countryCode && { countryCode: data.countryCode }),
+        },
+      });
     } else {
       // Create new user with the specified ID
       user = await this.prisma.user.create({
         data: {
           id: data.id,
-          email: data.email,
+          ...(data.email && { email: data.email }),
           ...(phone && { phone }),
           countryCode: data.countryCode || '+1',
         },
@@ -338,10 +374,12 @@ export class UsersService {
       where: { userId: user.id },
       update: {
         ...(data.fullName !== undefined && { fullName: data.fullName }),
+        ...(data.photoUrl !== undefined && { avatarUrl: data.photoUrl }),
       },
       create: {
         userId: user.id,
         fullName: data.fullName,
+        avatarUrl: data.photoUrl,
         travelStyles: [],
       },
     });
@@ -353,35 +391,21 @@ export class UsersService {
   }
 
   /**
-   * Upload avatar to Supabase Storage and update user profile
+   * Upload avatar to GCS and update user profile
    */
   async uploadAvatar(userId: string, file: Express.Multer.File) {
-    const supabase = this.supabaseService.getClient();
-    const bucketName = 'avatars';
+    const bucketName = this.storageService.getAvatarsBucket();
 
     // Generate unique filename
     const fileExt = file.originalname.split('.').pop() || 'jpg';
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
 
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .upload(fileName, file.buffer, {
-        contentType: file.mimetype,
-        upsert: true,
-      });
-
-    if (error) {
-      console.error('Storage upload error:', error);
-      throw new InternalServerErrorException('Failed to upload avatar');
-    }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(fileName);
-
-    const avatarUrl = urlData.publicUrl;
+    const avatarUrl = await this.storageService.uploadPublicFile(
+      bucketName,
+      fileName,
+      file.buffer,
+      file.mimetype,
+    );
 
     // Upsert profile with avatar URL (handles both existing and missing profile)
     await this.prisma.profile.upsert({
@@ -559,35 +583,21 @@ export class UsersService {
   }
 
   /**
-   * Upload video introduction to Supabase Storage and update user profile
+   * Upload video introduction to GCS and update user profile
    */
   async uploadVideo(userId: string, file: Express.Multer.File) {
-    const supabase = this.supabaseService.getClient();
-    const bucketName = 'profile-videos';
+    const bucketName = this.storageService.getProfileVideosBucket();
 
     // Generate unique filename
     const fileExt = file.originalname.split('.').pop() || 'mp4';
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
 
-    // Upload to Supabase Storage
-    const { error } = await supabase.storage
-      .from(bucketName)
-      .upload(fileName, file.buffer, {
-        contentType: file.mimetype,
-        upsert: true,
-      });
-
-    if (error) {
-      console.error('Storage upload error:', error);
-      throw new InternalServerErrorException('Failed to upload video');
-    }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(fileName);
-
-    const videoIntroUrl = urlData.publicUrl;
+    const videoIntroUrl = await this.storageService.uploadPublicFile(
+      bucketName,
+      fileName,
+      file.buffer,
+      file.mimetype,
+    );
 
     // Upsert profile with video URL
     await this.prisma.profile.upsert({

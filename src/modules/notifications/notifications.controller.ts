@@ -9,9 +9,9 @@ import {
   Request,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { FirebaseAuthGuard } from '../../common/guards/firebase-auth.guard';
 
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(FirebaseAuthGuard)
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}

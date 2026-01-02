@@ -1,15 +1,12 @@
--- Enable Supabase Realtime for tables
--- This allows frontend to subscribe to database changes
-
--- Add tables to the realtime publication
-ALTER PUBLICATION supabase_realtime ADD TABLE messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE user_locations;
-ALTER PUBLICATION supabase_realtime ADD TABLE connections;
-ALTER PUBLICATION supabase_realtime ADD TABLE conversation_participants;
-ALTER PUBLICATION supabase_realtime ADD TABLE conversations;
-
--- Verify tables are in the publication
-SELECT schemaname, tablename
-FROM pg_publication_tables
-WHERE pubname = 'supabase_realtime'
-ORDER BY tablename;
+-- Previously enabled Supabase Realtime. Guarded to avoid failures on Cloud SQL.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'realtime_publication') THEN
+    ALTER PUBLICATION realtime_publication ADD TABLE messages;
+    ALTER PUBLICATION realtime_publication ADD TABLE user_locations;
+    ALTER PUBLICATION realtime_publication ADD TABLE connections;
+    ALTER PUBLICATION realtime_publication ADD TABLE conversation_participants;
+    ALTER PUBLICATION realtime_publication ADD TABLE conversations;
+  END IF;
+END
+$$;

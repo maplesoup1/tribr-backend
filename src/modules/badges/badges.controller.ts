@@ -9,7 +9,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { BadgesService } from './badges.service';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { FirebaseAuthGuard } from '../../common/guards/firebase-auth.guard';
 import { UsersService } from '../users/users.service';
 import { BadgeCategory } from '@prisma/client';
 
@@ -43,9 +43,9 @@ export class BadgesController {
    * GET /badges/me
    */
   @Get('me')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(FirebaseAuthGuard)
   async getMyBadges(@Request() req) {
-    const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
     return this.badgesService.getUserBadges(user.id);
   }
 
@@ -54,9 +54,9 @@ export class BadgesController {
    * GET /badges/me/stats
    */
   @Get('me/stats')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(FirebaseAuthGuard)
   async getMyBadgeStats(@Request() req) {
-    const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
     return this.badgesService.getUserBadgeStats(user.id);
   }
 
@@ -65,12 +65,12 @@ export class BadgesController {
    * GET /badges/me/all?category=exploration
    */
   @Get('me/all')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(FirebaseAuthGuard)
   async getAllWithMyProgress(
     @Request() req,
     @Query('category') category?: BadgeCategory,
   ) {
-    const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
     return this.badgesService.getAllBadgesWithUserProgress(user.id, category);
   }
 
@@ -80,7 +80,7 @@ export class BadgesController {
    * TODO: Restrict to ADMIN role only
    */
   @Post('seed')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(FirebaseAuthGuard)
   async seedBadges() {
     // Ideally check for req.user.role === 'admin' here
     return this.badgesService.seedDefaultBadges();
@@ -92,13 +92,13 @@ export class BadgesController {
    * Body: { "progress": 50 }
    */
   @Post(':code/progress')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(FirebaseAuthGuard)
   async updateProgress(
     @Request() req,
     @Param('code') code: string,
     @Body('progress') progress: number,
   ) {
-    const user = await this.usersService.getOrCreateFromSupabaseUser(req.user);
+    const user = await this.usersService.getOrCreateFromFirebaseUser({ uid: req.user.id, email: req.user.email });
     return this.badgesService.updateProgress(user.id, code, progress);
   }
 }

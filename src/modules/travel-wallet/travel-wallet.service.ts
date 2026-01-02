@@ -6,7 +6,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SupabaseService } from '../../supabase/supabase.service';
+import { StorageService } from '../../storage/storage.service';
 import { CreateDocumentDto, UpdateDocumentDto } from './dto';
 import { DocumentType, WalletDocument } from '@prisma/client';
 
@@ -28,7 +28,7 @@ export interface GroupedDocuments {
 export class TravelWalletService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly supabaseService: SupabaseService,
+    private readonly storageService: StorageService,
   ) {}
 
   /**
@@ -233,33 +233,22 @@ export class TravelWalletService {
       await this.deleteDocumentFile(existing.documentUrl);
     }
 
-    // Upload to Supabase Storage
-    const supabase = this.supabaseService.getClient();
-    const bucketName = 'wallet-documents';
+    // Upload to GCS
+    const bucketName = this.storageService.getWalletDocumentsBucket();
     const fileExt = file.originalname.split('.').pop() || 'pdf';
     const fileName = `${userId}/${documentId}/${Date.now()}.${fileExt}`;
 
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .upload(fileName, file.buffer, {
-        contentType: file.mimetype,
-        upsert: true,
-      });
-
-    if (error) {
-      console.error('Storage upload error:', error);
-      throw new InternalServerErrorException('Failed to upload document file');
-    }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(fileName);
+    const publicUrl = await this.storageService.uploadPublicFile(
+      bucketName,
+      fileName,
+      file.buffer,
+      file.mimetype,
+    );
 
     // Update document with file URL
     const document = await this.prisma.walletDocument.update({
       where: { id: documentId },
-      data: { documentUrl: urlData.publicUrl },
+      data: { documentUrl: publicUrl },
     });
 
     return this.addStatusToDocument(document);
@@ -319,19 +308,17 @@ export class TravelWalletService {
   }
 
   /**
-   * Helper: Delete file from Supabase Storage
+   * Helper: Delete file from GCS
    */
   private async deleteDocumentFile(fileUrl: string): Promise<void> {
     try {
-      const supabase = this.supabaseService.getClient();
-      const bucketName = 'wallet-documents';
-
-      // Extract file path from URL
-      const urlParts = fileUrl.split(`${bucketName}/`);
-      if (urlParts.length < 2) return;
-
-      const filePath = urlParts[1];
-      await supabase.storage.from(bucketName).remove([filePath]);
+      const bucketName = this.storageService.getWalletDocumentsBucket();
+      const filePath = this.storageService.extractPathFromUrl(
+        bucketName,
+        fileUrl,
+      );
+      if (!filePath) return;
+      await this.storageService.deleteFile(bucketName, filePath);
     } catch (error) {
       console.error('Failed to delete document file:', error);
       // Don't throw - file deletion failure shouldn't block document deletion

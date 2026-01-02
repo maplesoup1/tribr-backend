@@ -6,3 +6,4 @@ node_modules
 
 # Tool caches (Prisma, Node)
 Library/
+secrets/gcp-proxy-key.json

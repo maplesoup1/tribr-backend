@@ -13,7 +13,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { FirebaseAuthGuard } from '../../common/guards/firebase-auth.guard';
 import {
   TravelWalletService,
   DocumentWithStatus,
@@ -22,7 +22,7 @@ import {
 import { CreateDocumentDto, UpdateDocumentDto } from './dto';
 
 @Controller('travel-wallet')
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(FirebaseAuthGuard)
 export class TravelWalletController {
   constructor(private readonly travelWalletService: TravelWalletService) {}
 

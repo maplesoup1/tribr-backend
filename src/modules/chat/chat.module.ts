@@ -12,7 +12,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('supabase.jwtSecret'),
+        secret: config.get<string>('JWT_SECRET') || 'tribr-fallback-jwt-secret',
         signOptions: { expiresIn: '1h' },
       }),
     }),

@@ -4,11 +4,17 @@ export default () => ({
     url: process.env.DATABASE_URL,
     directUrl: process.env.DIRECT_URL,
   },
-  supabase: {
-    url: process.env.SUPABASE_URL,
-    anonKey: process.env.SUPABASE_ANON_KEY,
-    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    jwtSecret: process.env.SUPABASE_JWT_SECRET,
+  firebase: {
+    serviceAccountPath:
+      process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
+      './secrets/firebase-admin-backend.json',
+  },
+  gcs: {
+    avatarsBucket: process.env.GCS_AVATARS_BUCKET || 'tribr-avatars',
+    profileVideosBucket:
+      process.env.GCS_PROFILE_VIDEOS_BUCKET || 'tribr-profile-videos',
+    walletDocumentsBucket:
+      process.env.GCS_WALLET_DOCUMENTS_BUCKET || 'wallet-documents',
   },
   google: {
     placesApiKey: process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY,

@@ -13,9 +13,9 @@ import {
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { FirebaseAuthGuard } from '../../common/guards/firebase-auth.guard';
 
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(FirebaseAuthGuard)
 @Controller('chat')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
