@@ -1,6 +1,8 @@
 node_modules
 # Keep environment variables out of version control
 .env
+secrets/firebase-admin-backend.json
+secrets/*.json
 
 /generated/prisma
 
